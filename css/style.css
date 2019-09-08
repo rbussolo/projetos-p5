@@ -1,0 +1,98 @@
+body{
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+    font-size: 1rem;
+    font-weight: 400;
+    line-height: 1.5;
+    color: #212529;
+    text-align: left;
+    background-color: #fafafa;
+}
+
+.navbar{
+    position: fixed;
+    width: 100%;
+    background-color: purple;
+    height: 60px;
+    padding-left: 15px;
+    padding-right: 15px;
+    padding-top:10px;
+    font-size: 2rem;
+}
+
+.navbar a{
+    color: #fff;
+    text-decoration: none;
+    padding:10px;
+}
+
+.navbar a:hover{
+    background-color:#ce6fcd;
+}
+
+.container{
+    display: flex;
+    padding: 15px;
+    padding-top: 75px;
+}
+
+.card{
+    border: 1px solid #dbdbdb;
+    min-width: 300px;
+    background-color: #fff;
+}
+
+.card .card-title{
+    font-size: 1.5rem;
+    text-align: center;
+    background-color: #dfe6e9;
+}
+
+.card .card-body{
+    display:flex;
+    min-height: 50px;
+    justify-content: center;
+}
+
+.card .card-body .card-body-canvas{
+    padding: 5px;
+}
+
+.card .card-body .card-body-text{
+    border-left: 1px solid #dbdbdb;
+    padding: 5px;
+}
+
+.card .card-footer{
+    background-color: #f1f1f1;
+}
+
+.card .card-footer .card-footer-title{
+    font-size: 1.3rem;
+    padding: 10px;
+}
+
+.card .card-footer .card-footer-itens{
+    padding: 10px;
+    background-color: #fafafa;
+}
+
+input[type=number]{
+    text-align: right;
+}
+
+.btn{
+    padding: 5px;
+    border: 1px solid;
+}
+
+.btn.btn-purple{
+    border: 1px solid purple;
+    background-color: purple;
+    color: #fff;
+}
+
+.btn.btn-purple:hover{
+    border: 1px solid #ce6fcd;
+    background-color: #ce6fcd;
+}
