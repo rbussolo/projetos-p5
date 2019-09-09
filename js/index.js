@@ -1,3 +1,24 @@
+var pages = ['starfall','fractal','snake'];
+var show = pages.indexOf(location.search.substr(1)) < 0 ? 'allProjects' : location.search.substr(1);
+showProject();
+
+function showProject(){
+    var elements = document.getElementsByClassName("card");
+    
+    Array.prototype.forEach.call(elements, function(el) {
+        if(el.id == show){
+            el.style.display = "block";
+        }else{
+            el.style.display = "none";
+        }
+    });    
+}
+
+function page(name){
+    show = name;
+    showProject();
+}
+
 function reloadStarfall(){
     // Carrega os valores dos input
     starWidth = document.getElementById("starWidth").value;
@@ -8,7 +29,7 @@ function reloadStarfall(){
 
     // Recarrega o iframe passando estes parametros
     frameStarfall = document.getElementById("frameStarfall");
-    frameStarfall.src = 'starfall.html?width=' + starWidth + '&heigth=' + starHeigth + '&size=' + starSize + '&speed=' + starSpeed + '&count=' + starCount;
+    frameStarfall.src = 'pages/starfall.html?width=' + starWidth + '&heigth=' + starHeigth + '&size=' + starSize + '&speed=' + starSpeed + '&count=' + starCount;
 
     return true;
 }
@@ -23,7 +44,7 @@ function reloadFractal(){
 
     // Recarrega o iframe passando estes parametros
     frameFractal = document.getElementById("frameFractal");
-    frameFractal.src = 'fractal.html?width=' + fractalWidth + '&heigth=' + fractalHeight + '&size=' + fractalSize + '&limit=' + fractalLimit + '&reverse=' + fractalReverse;
+    frameFractal.src = 'pages/fractal.html?width=' + fractalWidth + '&heigth=' + fractalHeight + '&size=' + fractalSize + '&limit=' + fractalLimit + '&reverse=' + fractalReverse;
 
     return true;
 }

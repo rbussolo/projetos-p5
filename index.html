@@ -7,16 +7,34 @@
     </head>
     <body>
         <header class="navbar">
-            <a href="#"><i class="fas fa-home"></i> Projeto P5</a>
+            <a href="javascript:page('allProjects');"><i class="fas fa-home"></i> Projeto P5</a>
+            <a href="javascript:page('starfall');"><i class="fas fa-star"></i> Starfall</a>
+            <a href="javascript:page('fractal');"><i class="fas fa-cube"></i> Fractal</a>
+            <a href="javascript:page('snake');"><i class="fas fa-ils" aria-hidden="true"></i> Snake</a>
         </header>
         <div class="container">
-            <div class="card">
+            <div id="allProjects" class="card">
+                <div class="card-title">
+                    Projetos P5
+                </div>
+                <div class="card-body">
+                    <div class="card-body-text">
+                        Click no botão para conhecer melhor o projeto.
+                        <div style="text-align: center">
+                            <button class="btn btn-purple" onclick="page('starfall')">Starfall</button>
+                            <button class="btn btn-purple" onclick="page('fractal')">Fractal</button>
+                            <button class="btn btn-purple" onclick="page('snake')">Snake</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div id="starfall" class="card">
                 <div class="card-title">
                     Projeto <b>Starfall</b>
                 </div>
                 <div class="card-body">
                     <div class="card-body-canvas">
-                        <iframe id="frameStarfall" src="starfall.html" frameborder="0" width="500" height="500"></iframe>
+                        <iframe id="frameStarfall" src="pages/starfall.html" frameborder="0" width="500" height="500"></iframe>
                     </div>
                     <div class="card-body-text">
                         <div class="card-body-title">
@@ -46,13 +64,13 @@
                     </div>
                 </div>
             </div>
-            <div class="card">
+            <div id="fractal" class="card">
                 <div class="card-title">
                     Projeto <b>Menger Sponge Fractal</b>
                 </div>
                 <div class="card-body">
                     <div class="card-body-canvas">
-                        <iframe id="frameFractal" src="fractal.html" frameborder="0" width="500" height="500"></iframe>
+                        <iframe id="frameFractal" src="pages/fractal.html" frameborder="0" width="500" height="500"></iframe>
                     </div>
                     <div class="card-body-text">
                         <div class="card-body-title">
@@ -82,13 +100,13 @@
                     </div>
                 </div>
             </div>
-            <div class="card">
+            <div id="snake" class="card">
                 <div class="card-title">
                     Projeto <b>Snake</b>
                 </div>
                 <div class="card-body">
                     <div class="card-body-canvas">
-                        <iframe id="frameSnake" src="snake.html" frameborder="0" width="500" height="500"></iframe>
+                        <iframe id="frameSnake" src="pages/snake.html" frameborder="0" width="500" height="500"></iframe>
                     </div>
                     <div class="card-body-text">
                         <div class="card-body-title">
