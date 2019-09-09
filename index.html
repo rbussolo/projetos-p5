@@ -16,36 +16,73 @@
                 </div>
                 <div class="card-body">
                     <div class="card-body-canvas">
-                        <iframe src="starfall.html" frameborder="0" width="500" height="500"></iframe>
+                        <iframe id="frameStarfall" src="starfall.html" frameborder="0" width="500" height="500"></iframe>
                     </div>
                     <div class="card-body-text">
                         <div class="card-body-title">
-                            Parametrização:
+                            A ideia deste desafio é tentar criar uma chuva de estrelas.<br />Abaixo é possível realizar as configurações.
                         </div>
                         <div class="card-body-description">
                             <div>
                                 Tamanho da tela:
-                                <input type="number" value="500">x<input type="number" value="500">
+                                <input type="number" value="500" id="starWidth" disabled>x<input type="number" value="500" id="starHeigth" disabled>
                             </div>
                             <div>
                                 Tamanho Maximo:
-                                <input type="number" value="8">
+                                <input type="number" value="4" id="starSize">
                             </div>
                             <div>
                                 Velocidade Maxima:
-                                <input type="number" value="30">
+                                <input type="number" value="30" id="starSpeed">
                             </div>
                             <div>
                                 Quantidade de Estrelas:
-                                <input type="number" value="100">
+                                <input type="number" value="100" id="starCount">
                             </div>
                             <div style="text-align: center">
-                                <button class="btn btn-purple">Carregar Novamente</button>
+                                <button class="btn btn-purple" onclick="reloadStarfall()">Carregar Novamente</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="card">
+                <div class="card-title">
+                    Projeto <b>Menger Sponge Fractal</b>
+                </div>
+                <div class="card-body">
+                    <div class="card-body-canvas">
+                        <iframe id="frameFractal" src="fractal.html" frameborder="0" width="500" height="500"></iframe>
+                    </div>
+                    <div class="card-body-text">
+                        <div class="card-body-title">
+                            A ideia deste é criar um quadrado dentro de outro quadrado.<br />Abaixo é possível realizar as configurações.
+                        </div>
+                        <div class="card-body-description">
+                            <div>
+                                Tamanho da tela:
+                                <input type="number" value="500" id="fractalWidth" disabled>x<input type="number" value="500" id="fractalHeight" disabled>
+                            </div>
+                            <div>
+                                Tamanho do Quadrado:
+                                <input type="number" value="200" id="fractalSize">
+                            </div>
+                            <div>
+                                Quantidade Maxima de Quebra:
+                                <input type="number" value="3" id="fractalLimit">
+                            </div>
+                            <div>
+                                Fazer ao contrario:
+                                <input type="number" value="0" id="fractalReverse">
+                            </div>
+                            <div style="text-align: center">
+                                <button class="btn btn-purple" onclick="reloadFractal()">Carregar Novamente</button>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
+        <script src="js/index.js"></script>
     </body>
 </html>

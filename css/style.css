@@ -31,15 +31,17 @@ body{
 }
 
 .container{
-    display: flex;
     padding: 15px;
     padding-top: 75px;
+    display: flex;
+    justify-content: center;
 }
 
 .card{
     border: 1px solid #dbdbdb;
     min-width: 300px;
     background-color: #fff;
+    margin-right: 5px;
 }
 
 .card .card-title{
@@ -49,7 +51,6 @@ body{
 }
 
 .card .card-body{
-    display:flex;
     min-height: 50px;
     justify-content: center;
 }
@@ -82,6 +83,7 @@ input[type=number]{
 }
 
 .btn{
+    margin: 5px;
     padding: 5px;
     border: 1px solid;
 }

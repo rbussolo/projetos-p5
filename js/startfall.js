@@ -1,10 +1,16 @@
-width = 500;
-height = 500;
-maxSize = 4;
-maxSpeed = 30;
-starCount = 100;
-speed = 0;
-stars = [];
+// Carrega os parâmetros antes de tudo
+var queryDict = {}
+location.search.substr(1).split("&").forEach(function(item) {
+    queryDict[item.split("=")[0]] = item.split("=")[1];
+});
+
+width       = queryDict['width'] == undefined   ? 500   : Number(queryDict['width']);
+height      = queryDict['height'] == undefined  ? 500   : Number(queryDict['height']);
+maxSize     = queryDict['size'] == undefined    ? 4     : Number(queryDict['size']);
+maxSpeed    = queryDict['speed'] == undefined   ? 30    : Number(queryDict['speed']);
+starCount   = queryDict['count'] == undefined   ? 100   : Number(queryDict['count']);
+speed       = 0;
+stars       = [];
 
 function setup() {
     createCanvas(500, 500);
