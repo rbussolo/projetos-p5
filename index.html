@@ -10,7 +10,8 @@
             <a href="javascript:page('allProjects');"><i class="fas fa-home"></i> Projeto P5</a>
             <a href="javascript:page('starfall');"><i class="fas fa-star"></i> Starfall</a>
             <a href="javascript:page('fractal');"><i class="fas fa-cube"></i> Fractal</a>
-            <a href="javascript:page('snake');"><i class="fas fa-ils" aria-hidden="true"></i> Snake</a>
+            <a href="javascript:page('snake');"><i class="fas fa-gamepad"></i> Snake</a>
+            <a href="javascript:page('rain');"><i class="fas fa-cloud-rain"></i> Purple Rain</a>
         </header>
         <div class="container">
             <div id="allProjects" class="card">
@@ -18,12 +19,13 @@
                     Projetos P5
                 </div>
                 <div class="card-body">
-                    <div class="card-body-text">
+                    <div class="card-body-text" style="text-align: center">
                         Click no botão para conhecer melhor o projeto.
                         <div style="text-align: center">
                             <button class="btn btn-purple" onclick="page('starfall')">Starfall</button>
                             <button class="btn btn-purple" onclick="page('fractal')">Fractal</button>
                             <button class="btn btn-purple" onclick="page('snake')">Snake</button>
+                            <button class="btn btn-purple" onclick="page('rain')">Purple Rain</button>
                         </div>
                     </div>
                 </div>
@@ -124,6 +126,21 @@
                             <div style="text-align: center">
                                 <button class="btn btn-purple" onclick="reloadSnake()">Carregar Novamente</button>
                             </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div id="rain" class="card">
+                <div class="card-title">
+                    Projeto <b>Purple Rain</b>
+                </div>
+                <div class="card-body">
+                    <div class="card-body-canvas">
+                        <iframe id="frameRain" src="pages/rain.html" frameborder="0" width="500" height="500"></iframe>
+                    </div>
+                    <div class="card-body-text">
+                        <div class="card-body-title">
+                            Apenas uma chuva roxa.
                         </div>
                     </div>
                 </div>
