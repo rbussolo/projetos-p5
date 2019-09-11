@@ -8,6 +8,7 @@ var player;
 var invaders = [];
 var initial_height = 50;
 var initial_width = 25;
+var min_height_per_collumn = []
 
 function setup() {
     createCanvas(500, 500);
@@ -35,21 +36,24 @@ function draw() {
         player.update();
         player.show();
 
-        // Atualiza os inimigos
-        removeInvaders = [];
-        for(var i = 0; i < invaders.length; i++){
-            if(invaders[i].live > 0){
-                invaders[i].update();
-                invaders[i].show();
-            }else{
-                removeInvaders.push(i);
-            }
+        // Atualiza a altura minima
+        min_height_per_collumn = [];
+        for(var i = 1; i <= 18; i++){
+            min_height_per_collumn[i] = 9999;
         }
 
-        // Remove os invasores
-        for(var i = removeInvaders.length - 1; i >= 0; i--){
-            invaders.splice(removeInvaders[i],1);
+        // Atualiza os inimigos
+        for(var i = 0; i < invaders.length; i++){
+            invaders[i].update();
+            invaders[i].show();
         }
+
+        // Exibe o placar no canto da tela
+        textAlign(CENTER);
+        stroke(255);
+        fill(255);
+        strokeWeight(0);
+        text('Pontos: ' + player.points, 30, 30);
 
     }else if(stage == STAGE_GAMEOVER){
         // Adiciona mensagem do fim de jogo
@@ -57,6 +61,7 @@ function draw() {
         stroke(255);
         fill(255);
         strokeWeight(0);
+        text('Pontos: ' + player.points, width / 2, height / 2 - 30);
         text('Deu ruim! Clique para jogar novamente!', width / 2, height / 2);
 
     }
@@ -68,19 +73,42 @@ function Player(){
     this.width = 30;
     this.height = 20
     this.xSpeed = 0;
-    this.shotCount = 3;
+    this.shotCount = 5;
     this.bullets = [];
+    this.power = 1;
+    this.points = 0;
 
     this.dir = function(x){
-        this.xSpeed = x * 10;
+        this.xSpeed = x * 5;
     }
 
     this.shot = function(){
         if(this.shotCount > 0){
             this.shotCount -= 1;
 
-            bullet = new Bullet(this.x + this.width / 2, this.y);
-            this.bullets.push(bullet);
+            offset = this.width / this.power;
+            for(var i = 0; i < this.power; i++){
+                bullet = new Bullet(this.x + offset * i + offset / 2, this.y);
+                this.bullets.push(bullet);
+            }
+        }
+    }
+
+    this.kill = function(killed){
+        this.points += 50 * killed;
+        
+        if(this.points > 10000){
+            this.power = 7;
+        }else if(this.points > 8000){
+            this.power = 6;
+        }else if(this.points > 6000){
+            this.power = 5;
+        }else if(this.points > 4000){
+            this.power = 4;
+        }else if(this.points > 2000){
+            this.power = 3;
+        }else if(this.points > 1000){
+            this.power = 2;
         }
     }
 
@@ -146,14 +174,16 @@ function Bullet(x, y){
     }
 }
 
-function Invader(x, y){
+function Invader(x, y, c){
     this.x = x;
     this.y = y;
+    this.c = c;
     this.xSpeed = 0;
-    this.ySpeed = 1;
+    this.ySpeed = 0.5;
     this.width = 20;
     this.height = 20;
-    this.live = 3;
+    this.live = 1;
+    this.killed = 0;
     this.r = 200;
     this.g = 0;
     this.b = 200;
@@ -161,9 +191,21 @@ function Invader(x, y){
     this.hitted = function(x, y){
         if(this.x <= x && this.x + this.width >= x && this.y <= y && this.y + this.height >= y){
             this.live -= 1;
-            this.r -= 25;
-            this.g += 25;
-            this.b -= 25;
+
+            if(this.live == 0){
+                // Ressucita o invasor
+                this.killed += 1;
+                this.live = this.killed + 1;
+                this.y = 50 + this.height + 10 > min_height_per_collumn[this.c] ? min_height_per_collumn[this.c] - (10 + this.height) : 50;
+                this.r = 200;
+                this.g = 0;
+                this.b = 200;
+                player.kill(this.killed);
+            }else{
+                this.r -= 15;
+                // this.g -= 15;
+                this.b -= 15;
+            }
 
             return true;
         }
@@ -174,11 +216,18 @@ function Invader(x, y){
     this.update = function(){
         this.y += this.ySpeed;
 
-        // Verifica se passou da tela
-        if(this.y + this.height > height){
+        // Verifica se acertou o player
+        if(dist(this.x + this.width / 2, this.y + this.height / 2, player.x + player.width / 2, player.y + player.height / 2) <= 33){ // Verifica se bateu no jogador
             stage = STAGE_GAMEOVER;
-        }else if(dist(this.x + this.width / 2, this.y + this.height / 2, player.x + player.width / 2, player.y + player.height / 2) <= 33){ // Verifica se bateu no jogador
-            stage = STAGE_GAMEOVER;
+        }else{
+            // Verifica se passou da tela, caso tenha, vamos volar ele la para cima
+            if(this.y + this.height > height){
+                this.y = 50 + this.height + 10 > min_height_per_collumn[this.c] ? min_height_per_collumn[this.c] - (10 + this.height) : 50;
+            }
+        }
+
+        if(min_height_per_collumn[this.c] > this.y){
+            min_height_per_collumn[this.c] = this.y;
         }
     }
 
@@ -220,7 +269,7 @@ function start_game(){
     invaders = [];
     for(var i = 1; i <= 3; i++){
         for(var j = 1; j <= 18; j++){
-            invader = new Invader(initial_width * j, initial_height * i);
+            invader = new Invader(initial_width * j, initial_height * i, j);
             invaders[sum] = invader;
 
             sum += 1
