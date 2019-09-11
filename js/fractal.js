@@ -5,8 +5,8 @@ location.search.substr(1).split("&").forEach(function(item) {
 });
 
 a               = 0;
-width           = queryDict['width'] == undefined   ? 500   : Number(queryDict['width']);
-heigth          = queryDict['height'] == undefined  ? 500   : Number(queryDict['height']);
+_width          = queryDict['width'] == undefined   ? 500   : Number(queryDict['width']);
+_heigth         = queryDict['height'] == undefined  ? 500   : Number(queryDict['height']);
 size            = queryDict['size'] == undefined    ? 200   : Number(queryDict['size']);
 clickCount      = 0;
 clickLimit      = queryDict['limit'] == undefined   ? 3     : Number(queryDict['limit']);
@@ -14,7 +14,7 @@ reverseFractal  = queryDict['reverse'] == '1'       ? true  : false;
 sponge          = [];
 
 function setup() {
-    createCanvas(500, 500, WEBGL);
+    createCanvas(_width, _heigth, WEBGL);
 
     b = new Box(0,0,0,size);
     sponge.push(b);

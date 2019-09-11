@@ -12,6 +12,7 @@
             <a href="javascript:page('fractal');"><i class="fas fa-cube"></i> Fractal</a>
             <a href="javascript:page('snake');"><i class="fas fa-gamepad"></i> Snake</a>
             <a href="javascript:page('rain');"><i class="fas fa-cloud-rain"></i> Purple Rain</a>
+            <a href="javascript:page('space');"><i class="fas fa-rocket"></i> Space Invaders</a>
         </header>
         <div class="container">
             <div id="allProjects" class="card">
@@ -26,6 +27,7 @@
                             <button class="btn btn-purple" onclick="page('fractal')">Fractal</button>
                             <button class="btn btn-purple" onclick="page('snake')">Snake</button>
                             <button class="btn btn-purple" onclick="page('rain')">Purple Rain</button>
+                            <button class="btn btn-purple" onclick="page('space')">Space Invaders</button>
                         </div>
                     </div>
                 </div>
@@ -81,7 +83,7 @@
                         <div class="card-body-description">
                             <div>
                                 Tamanho da tela:
-                                <input type="number" value="500" id="fractalWidth" disabled>x<input type="number" value="500" id="fractalHeight" disabled>
+                                <input type="number" value="500" id="fractalWidth">x<input type="number" value="500" id="fractalHeight">
                             </div>
                             <div>
                                 Tamanho do Quadrado:
@@ -141,6 +143,21 @@
                     <div class="card-body-text">
                         <div class="card-body-title">
                             Apenas uma chuva roxa.
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div id="space" class="card">
+                <div class="card-title">
+                    Projeto <b>Space Invaders</b>
+                </div>
+                <div class="card-body">
+                    <div class="card-body-canvas">
+                        <iframe id="frameSpace" src="pages/space.html" frameborder="0" width="500" height="500"></iframe>
+                    </div>
+                    <div class="card-body-text">
+                        <div class="card-body-title">
+                            O jogo SPACE INVADERS !!!!!
                         </div>
                     </div>
                 </div>
