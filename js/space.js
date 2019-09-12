@@ -3,12 +3,15 @@ var STAGE_START = 1;
 var STAGE_PLAYING = 2;
 var STAGE_GAMEOVER = 3;
 
+var nivel = 1;
 var stage;
 var player;
 var invaders = [];
 var initial_height = 50;
 var initial_width = 25;
-var min_height_per_collumn = []
+var min_height_per_collumn = [];
+var xSpeed;
+var ySpeed;
 
 function setup() {
     createCanvas(500, 500);
@@ -73,13 +76,15 @@ function Player(){
     this.width = 30;
     this.height = 20
     this.xSpeed = 0;
+    this.ySpeed = 0;
     this.shotCount = 5;
     this.bullets = [];
     this.power = 1;
     this.points = 0;
 
-    this.dir = function(x){
+    this.dir = function(x, y){
         this.xSpeed = x * 5;
+        this.ySpeed = y * 5;
     }
 
     this.shot = function(){
@@ -110,11 +115,16 @@ function Player(){
         }else if(this.points > 1000){
             this.power = 2;
         }
+
+        nivel = this.power;
     }
 
     this.update = function(){
         this.x += this.xSpeed;
         this.x = constrain(this.x, 0, width - this.width);
+
+        this.y += this.ySpeed;
+        this.y = constrain(this.y, 0, height - this.height);
         
         // Atualiza todas as balas que este jogador disparou
         var removeBullet = [];
@@ -214,7 +224,7 @@ function Invader(x, y, c){
     }
 
     this.update = function(){
-        this.y += this.ySpeed;
+        this.y += (this.ySpeed * nivel);
 
         // Verifica se acertou o player
         if(dist(this.x + this.width / 2, this.y + this.height / 2, player.x + player.width / 2, player.y + player.height / 2) <= 33){ // Verifica se bateu no jogador
@@ -243,17 +253,31 @@ function read_keyboard(){
     // Verifica se a seta esta sendo precionada
     right_arrow = keyIsDown(RIGHT_ARROW);
     left_arrow = keyIsDown(LEFT_ARROW);
+    up_arrow = keyIsDown(UP_ARROW);
+    down_arrow = keyIsDown(DOWN_ARROW);
 
     // Controla a movimentação do jogador
     if(right_arrow && left_arrow){
-        player.dir(0);
+        xSpeed = 0;
     }else if(right_arrow){
-        player.dir(1);
+        xSpeed = 1;
     }else if(left_arrow){
-        player.dir(-1);
+        xSpeed = -1;
     }else{
-        player.dir(0);
+        xSpeed = 0;
     }
+
+    if(up_arrow && down_arrow){
+        ySpeed = 0;
+    }else if(up_arrow){
+        ySpeed = -1;
+    }else if(down_arrow){
+        ySpeed = 1;
+    }else{
+        ySpeed = 0;
+    }
+
+    player.dir(xSpeed, ySpeed);
 }
 
 function keyPressed(){
@@ -264,6 +288,7 @@ function keyPressed(){
 
 function start_game(){
     player = new Player();
+    nivel = 1;
     
     sum = 0;
     invaders = [];
