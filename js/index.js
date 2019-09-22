@@ -29,7 +29,7 @@ function reloadStarfall(){
 
     // Recarrega o iframe passando estes parametros
     frameStarfall = document.getElementById("frameStarfall");
-    frameStarfall.src = 'pages/starfall.html?width=' + starWidth + '&heigth=' + starHeigth + '&size=' + starSize + '&speed=' + starSpeed + '&count=' + starCount;
+    frameStarfall.src = 'pages/starfall/starfall.html?width=' + starWidth + '&heigth=' + starHeigth + '&size=' + starSize + '&speed=' + starSpeed + '&count=' + starCount;
 
     return true;
 }
@@ -44,7 +44,7 @@ function reloadFractal(){
 
     // Recarrega o iframe passando estes parametros
     frameFractal = document.getElementById("frameFractal");
-    frameFractal.src = 'pages/fractal.html?width=' + fractalWidth + '&heigth=' + fractalHeight + '&size=' + fractalSize + '&limit=' + fractalLimit + '&reverse=' + fractalReverse;
+    frameFractal.src = 'pages/fractal/fractal.html?width=' + fractalWidth + '&heigth=' + fractalHeight + '&size=' + fractalSize + '&limit=' + fractalLimit + '&reverse=' + fractalReverse;
 
     return true;
 }
