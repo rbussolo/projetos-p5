@@ -1,4 +1,4 @@
-var pages = ['starfall','fractal','snake','rain','space','sort','fat'];
+var pages = ['starfall','fractal','snake','rain','space','sort','fat','car'];
 var show = pages.indexOf(location.search.substr(1)) < 0 ? 'allProjects' : location.search.substr(1);
 showProject();
 
