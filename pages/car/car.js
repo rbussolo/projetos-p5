@@ -2,6 +2,7 @@ let STAGE_MAPPING = 'MAPPING';
 let STAGE_PLAYING = 'PLAYING';
 let MAX_ANGLE_CHANGE = 0.1;
 let MAX_VELOCITY = 2;
+let QUARTER_PI = 3.14159265358979323846 / 4;
 
 var link_bg = 'http://miromannino.com/wp-content/uploads/ur2009-map.png'; // car_game.png
 var color_street = [180,180,180,1];
@@ -12,6 +13,7 @@ var lineMapping = 0;
 var car;
 var angle;
 var velocity;
+var density;
 
 function preload() {
     // Carrega a imagem de fundo
@@ -29,23 +31,27 @@ function setup() {
             map_game[i][j] = false;
         }
     }
+
+    background(bg);
+    loadPixels();
+    density = pixelDensity();
 }
 
 function draw() {
-    image(bg, 0, 0);
+    background(bg);
     
     switch (stage) {
         case STAGE_MAPPING:
             gameMapping();
             break;
-
+        
         case STAGE_PLAYING:
             read_keyboard();
 
             car.update();
             car.show();
             break;
-
+        
         default:
             for(var i = 0; i < map_game.length; i++){
                 for(var j = 0; j < map_game[i].length; j++){
@@ -61,11 +67,19 @@ function draw() {
 function gameMapping(){
     stroke(226, 204, 0);
     line(0, lineMapping - 1, width, lineMapping - 1);
-
-    // Mappeia esta linha
+    
     for(var i = 0; i < width; i++){
-        let p = get(i, lineMapping);
-        map_game[i][lineMapping] = isStreet(p);
+        // Mappeia esta linha
+        // let p = get(i, lineMapping);
+        let off = (lineMapping * width + i) * density * 4;
+        let components = [
+            pixels[off],
+            pixels[off + 1],
+            pixels[off + 2],
+            pixels[off + 3]
+        ];
+
+        map_game[i][lineMapping] = isStreet(components);
     }
 
     // Avança para proxima linha
@@ -109,15 +123,20 @@ function arrayIsEqual(a, b){
 }
 
 function Car(){
-    this.position = createVector(width / 2, 100);
-    this.velocity = 0;
-    this.angle = PI;
-    this.wheel = 0;
-    this.crashed = false;
-    this.sensorFront = distanceToCollision(this.position.x, this.position.y, this.angle);
-    this.sensorBack = distanceToCollision(this.position.x, this.position.y, this.angle + PI);
-    this.sensorRight = distanceToCollision(this.position.x, this.position.y, this.angle - HALF_PI);
-    this.sensorLeft = distanceToCollision(this.position.x, this.position.y, this.angle + HALF_PI);
+    // Inicia o carro no ponto inicial
+    this.position   = createVector(width / 2, 100);
+    this.velocity   = 0;
+    this.angle      = PI;
+    this.wheel      = 0;
+    this.crashed    = false;
+
+    // Adiciona os sensores no carro
+    this.sensorFront        = distanceToCollision(this.position.x, this.position.y, this.angle);
+    this.sensorFrontRight   = distanceToCollision(this.position.x, this.position.y, this.angle - QUARTER_PI);
+    this.sensorFrontLeft    = distanceToCollision(this.position.x, this.position.y, this.angle + QUARTER_PI);
+    this.sensorBack         = distanceToCollision(this.position.x, this.position.y, this.angle + PI);
+    this.sensorRight        = distanceToCollision(this.position.x, this.position.y, this.angle - HALF_PI);
+    this.sensorLeft         = distanceToCollision(this.position.x, this.position.y, this.angle + HALF_PI);
 
     this.direction = function(velocity, angle){
         this.wheel = angle;
@@ -161,10 +180,12 @@ function Car(){
                 this.position.y     = newPositionY;
 
                 // Atualiza os sensores
-                this.sensorFront    = distanceToCollision(this.position.x, this.position.y, this.angle);
-                this.sensorBack     = distanceToCollision(this.position.x, this.position.y, this.angle + PI);
-                this.sensorRight    = distanceToCollision(this.position.x, this.position.y, this.angle - HALF_PI);
-                this.sensorLeft     = distanceToCollision(this.position.x, this.position.y, this.angle + HALF_PI);
+                this.sensorFront        = distanceToCollision(this.position.x, this.position.y, this.angle);
+                this.sensorFrontRight   = distanceToCollision(this.position.x, this.position.y, this.angle - QUARTER_PI);
+                this.sensorFrontLeft    = distanceToCollision(this.position.x, this.position.y, this.angle + QUARTER_PI);
+                this.sensorBack         = distanceToCollision(this.position.x, this.position.y, this.angle + PI);
+                this.sensorRight        = distanceToCollision(this.position.x, this.position.y, this.angle - HALF_PI);
+                this.sensorLeft         = distanceToCollision(this.position.x, this.position.y, this.angle + HALF_PI);
             }
         }
     }
@@ -182,6 +203,8 @@ function Car(){
         // Adiciona as linhas dos sensores
         stroke(0,0,255);
         line(this.position.x, this.position.y, this.sensorFront.x, this.sensorFront.y);
+        line(this.position.x, this.position.y, this.sensorFrontLeft.x, this.sensorFrontLeft.y);
+        line(this.position.x, this.position.y, this.sensorFrontRight.x, this.sensorFrontRight.y);
         line(this.position.x, this.position.y, this.sensorBack.x, this.sensorBack.y);
         line(this.position.x, this.position.y, this.sensorRight.x, this.sensorRight.y);
         line(this.position.x, this.position.y, this.sensorLeft.x, this.sensorLeft.y);
