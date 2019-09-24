@@ -29,8 +29,6 @@ function setup() {
             map_game[i][j] = false;
         }
     }
-
-    car = new Car();
 }
 
 function draw() {
@@ -74,6 +72,8 @@ function gameMapping(){
     lineMapping += 1;
 
     if (lineMapping > height) {
+        car = new Car();
+
         stage = STAGE_PLAYING;
     }
 }
@@ -112,22 +112,26 @@ function Car(){
     this.position = createVector(width / 2, 100);
     this.velocity = 0;
     this.angle = PI;
-    this.angleChange = 0;
+    this.wheel = 0;
     this.crashed = false;
+    this.sensorFront = distanceToCollision(this.position.x, this.position.y, this.angle);
+    this.sensorBack = distanceToCollision(this.position.x, this.position.y, this.angle + PI);
+    this.sensorRight = distanceToCollision(this.position.x, this.position.y, this.angle - HALF_PI);
+    this.sensorLeft = distanceToCollision(this.position.x, this.position.y, this.angle + HALF_PI);
 
     this.direction = function(velocity, angle){
-        this.angleChange = angle;
+        this.wheel = angle;
         this.velocity = velocity;
     }
 
     this.update = function(){
         if(this.velocity != 0){
-            this.angle += this.angleChange;
+            this.angle += this.wheel;
 
-            if(this.angle > 2 * PI){
-                this.angle = this.angle - 2 * PI;
+            if(this.angle > TWO_PI){
+                this.angle = this.angle - TWO_PI;
             }else if(this.angle < 0){
-                this.angle += 2 * PI;
+                this.angle += TWO_PI;
             }
 
             newPositionX = this.position.x;
@@ -135,13 +139,13 @@ function Car(){
 
             if(this.angle == 0){
                 newPositionX += this.velocity;
-            }else if(this.angle == PI / 2){
+            }else if(this.angle == HALF_PI){
                 newPositionY -= this.velocity;
             }else if(this.angle == PI){
                 newPositionX -= this.velocity;
-            }else if(this.angle == PI + PI / 2){
+            }else if(this.angle == PI + HALF_PI){
                 newPositionY += this.velocity;
-            }else if(this.angle == 2 * PI){
+            }else if(this.angle == TWO_PI){
                 newPositionX += this.velocity;
             }else{
                 newPositionX += cos(this.angle) * this.velocity;
@@ -152,8 +156,15 @@ function Car(){
             this.crashed = checkCollision(newPositionX, newPositionY);
 
             if(!this.crashed){
-                this.position.x = newPositionX;
-                this.position.y = newPositionY;
+                // Atualiza o posicionamento do carro
+                this.position.x     = newPositionX;
+                this.position.y     = newPositionY;
+
+                // Atualiza os sensores
+                this.sensorFront    = distanceToCollision(this.position.x, this.position.y, this.angle);
+                this.sensorBack     = distanceToCollision(this.position.x, this.position.y, this.angle + PI);
+                this.sensorRight    = distanceToCollision(this.position.x, this.position.y, this.angle - HALF_PI);
+                this.sensorLeft     = distanceToCollision(this.position.x, this.position.y, this.angle + HALF_PI);
             }
         }
     }
@@ -163,8 +174,17 @@ function Car(){
         translate(this.position.x, this.position.y);
         rotate(this.angle);
         rectMode(CENTER);
+        noStroke();
+        fill(255,0,0);
         rect(0, 0, 20, 10);
         pop();
+
+        // Adiciona as linhas dos sensores
+        stroke(0,0,255);
+        line(this.position.x, this.position.y, this.sensorFront.x, this.sensorFront.y);
+        line(this.position.x, this.position.y, this.sensorBack.x, this.sensorBack.y);
+        line(this.position.x, this.position.y, this.sensorRight.x, this.sensorRight.y);
+        line(this.position.x, this.position.y, this.sensorLeft.x, this.sensorLeft.y);
     }
 }
 
@@ -201,4 +221,36 @@ function read_keyboard(){
 
 function checkCollision(x,y){
     return !map_game[Math.trunc(x)][Math.trunc(y)];
+}
+
+function distanceToCollision(x, y, angle){
+    newX = x;
+    newY = y;
+
+    if(angle > TWO_PI){
+        angle = angle - TWO_PI;
+    }else if(angle < 0){
+        angle += TWO_PI;
+    }
+
+    while(true){
+        if(angle == 0){
+            newX += MAX_VELOCITY;
+        }else if(angle == HALF_PI){
+            newY -= MAX_VELOCITY;
+        }else if(angle == PI){
+            newX -= MAX_VELOCITY;
+        }else if(angle == PI + HALF_PI){
+            newY += MAX_VELOCITY;
+        }else if(angle == TWO_PI){
+            newX += MAX_VELOCITY;
+        }else{
+            newX += cos(angle) * MAX_VELOCITY;
+            newY += sin(angle) * MAX_VELOCITY;
+        }
+
+        if(checkCollision(newX, newY)){
+            return createVector(newX, newY, int(dist(x, y, newX, newY)));
+        };
+    }
 }
