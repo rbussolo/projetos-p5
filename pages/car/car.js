@@ -125,10 +125,15 @@ function draw() {
 
                 // Cria a seleção dos robots, realizandos uma mistura entre eles
                 robots[0] = bestCar;
-                robots[1] = new Car();
-                for(var i = 2; i < robotCount; i++){
+                for(var i = 1; i < robotCount; i++){
                     var parentA = random(matingpool).dna;
                     var parentB = random(matingpool).dna;
+                    
+                    if(random() <= 0.01){
+                        var mutation = new Car();
+                        parentB = mutation.dna;
+                    }
+                    
                     var child = parentA.crossover(parentB);
 
                     robots[i] = new Car(child);
@@ -508,6 +513,8 @@ function distanceToCollision(x, y, angle){
 }
 
 function DNA(genes){
+    this.breakDna = 200;
+
     if(genes){
         this.genes = genes;
     }else{
@@ -521,16 +528,20 @@ function DNA(genes){
 
     this.crossover = function(partner){
         var newgenes = [];
-        var mid = floor(random(this.genes.length));
+        var mid = floor(random(this.breakDna));
 
-        for(var i = 0; i < this.genes.length; i++){
-            if(i < mid){
-                newgenes[i] = this.genes[i];
-            }else{
-                newgenes[i] = partner.genes[i];
+        for(var i = 0; i < this.genes.length / this.breakDna; i++){
+            for(var j = 0; j < this.breakDna; j++){
+                var index = i * this.breakDna + j;
+
+                if(j < mid){
+                    newgenes[index] = this.genes[index];
+                }else{
+                    newgenes[index] = partner.genes[index];
+                }
             }
         }
-
+        
         return newgenes;
     }
 }
