@@ -3,7 +3,7 @@ let STAGE_MAPPING       = 'MAPPING';
 let STAGE_EVALUATE      = 'VALUE_MAP';
 let STAGE_PLAYING       = 'PLAYING';
 let STAGE_CHECKING      = 'CHECKING';
-let MAX_ANGLE_CHANGE    = 0.2;                          // Angulo maxima para fazer curva
+let MAX_ANGLE_CHANGE    = 0.15;                          // Angulo maxima para fazer curva
 let MAX_VELOCITY        = 2;                            // Velocidade Maxima do carro
 let MIN_VELOCITY        = 2;                            // Velocidade Minima do carro
 let QUARTER_PI          = 3.14159265358979323846 / 4;   // 1/4 do valor do PI
@@ -24,6 +24,7 @@ let bg;                                                 // Imagem de fundo
 let car;                                                // Carro do jogador
 let density;                                            // Densidade de pixel na imagem
 let endGame;                                            // Linha que vem destruindo os carros que ficam parados (Não esta funcionando corretamente)
+let breakDna;
 
 let generations         = 1;                            // Controle de gerações
 
@@ -77,10 +78,10 @@ function draw() {
                 document.getElementById("lifespan").innerText = count;
                 if(count == MAX_COUNT){
                     count = 0;
-                }else if(count == 50){
+                }else if(count == 1){
                     // Inicia barra da morte!
                     endGame = new EndGame();
-                }else if(count > 50){
+                }else if(count > 1){
                     endGame.update();
                     endGame.show();
                 }
@@ -99,6 +100,9 @@ function draw() {
                 if(!stillAlive){
                     generations += 1;
                     document.getElementById("generations").innerText = generations;
+
+                    // Define a quebra de dna através do tempo maior dividido por 2
+                    breakDna = Math.round(count / 2);
 
                     // Já quebrou todos os carros
                     count = 0;
@@ -119,7 +123,6 @@ function draw() {
                     bestCar.angle       = PI;
                     bestCar.wheel       = 0;
                     bestCar.crashed     = false;
-                    bestCar.crashedTime = 0;
                     bestCar.endGame     = false;
                     bestCar.fitness     = 0;
 
@@ -131,19 +134,19 @@ function draw() {
                     // Cria a listas de robos baseado no fitness, onde quanto maior o fitness melhor
                     matingpool = [];
                     for(var i = 0; i < MAX_ROBOT; i++){
-                        var n = robots[i].fitness * 10;
+                        var n = robots[i].fitness * 100;
                         for(var j = 0; j < n; j++){
                             matingpool.push(robots[i]);
                         }
                     }
 
                     // Cria a seleção dos robots, realizandos uma mistura entre eles
-                    // robots[0] = bestCar;
-                    for(var i = 0; i < MAX_ROBOT; i++){
+                    robots[0] = bestCar;
+                    for(var i = 1; i < MAX_ROBOT; i++){
                         var parentA = random(matingpool).dna;
                         var parentB = random(matingpool).dna;
                         
-                        if(random() <= 0.05){ // Adiciona mutação apenas em 5 por cento
+                        if(random() <= 0.01){ // Adiciona mutação apenas em 1 por cento
                             parentB = new DNA();
                         }
                         
@@ -194,10 +197,13 @@ function EndGame(){
     this.y1 = 0;
     this.x2 = 380;
     this.y2 = 140;
-    this.stage = 1;
+    this.value = 0;
+    this.points = [];
+    this.showLine = false;
 
     this.checkEndGame = function(car){
-        if((this.x1 <= car.position.x && this.y1 <= car.position.y && this.x2 >= car.position.x && this.y2 >= car.position.y) || (this.x1 >= car.position.x && this.y1 >= car.position.y && this.x2 <= car.position.x && this.y2 <= car.position.y)){
+        // Verifica o valor atual do carro, caso seja menor que o valor do fim do jogo ele deve morrer
+        if(map_value[Math.trunc(car.position.x)][Math.trunc(car.position.y)] <= this.value){
             return true;
         }
 
@@ -205,84 +211,28 @@ function EndGame(){
     }
 
     this.update = function(){
-        switch (this.stage) {
-            case 1:
-                this.x1 -= 1;
-                this.x2 -= 1;
-                this.y2 += 0.15;
-
-                if(this.x1 == 0){
-                    this.stage = 2;
-
-                    this.x1 = 0;
-                    this.x2 = 0;
-                    this.y1 = 140;
-                    this.y2 = height;
+        this.value += 1;
+        this.points = [];
+                
+        // Verifica quais os pontos tem o valor atual do fim do jogo
+        for(var i = 0; i < width; i++){
+            for(var j = 0; j < height; j ++){
+                if(map_value[i][j] == this.value){
+                    this.points.push(createVector(i,j));
                 }
-                break;
-            
-            case 2:
-                this.x1 += 1;
-                this.x2 += 1;
-
-                if(this.x1 == 270){
-                    this.stage = 3;
-
-                    this.x1 = 270;
-                    this.x2 = 410;
-                    this.y1 = height;
-                    this.y2 = height;
-                }
-                break;
-            
-            case 3:
-                this.y1 -= 1;
-                this.y2 -= 1;
-
-                if(this.y1 == 140){
-                    this.stage = 4;
-
-                    this.x1 = 410;
-                    this.x2 = 410;
-                    this.y1 = 140;
-                    this.y2 = height;
-                }
-                break;
-
-            case 4:
-                this.x1 += 1;
-                this.x2 += 1;
-
-                if(this.x1 == width){
-                    this.stage = 5;
-
-                    this.x1 = width;
-                    this.x2 = width;
-                    this.y1 = 0;
-                    this.y2 = 150;
-                }
-                break;
-
-            case 5:
-                this.x1 -= 1;
-                this.x2 -= 1;
-
-                if(this.x1 == 380){
-                    this.x1 = 380;
-                    this.y1 = 0;
-                    this.x2 = 380;
-                    this.y2 = 140;
-
-                    this.stage = 1;
-                }
-                break;
-            
+            }
         }
     }
 
     this.show = function(){
-        stroke(0, 0, 255);
-        line(this.x1, this.y1, this.x2, this.y2);
+        if(this.showLine){
+            stroke(0, 0, 255);
+        
+            // Printa todos os pontos
+            for(var i = 0; i < this.points.length; i++){
+                point(this.points[i].x, this.points[i].y);
+            }
+        }
     }
 }
 
@@ -597,7 +547,7 @@ function distanceToCollision(x, y, angle){
 }
 
 function DNA(genes){
-    this.breakDna = 200;
+    this.breakDna = 50;
 
     if(genes){
         this.genes = genes;
@@ -613,11 +563,11 @@ function DNA(genes){
 
     this.crossover = function(partner){
         var newgenes = [];
-        var mid = Math.round(random(this.breakDna));
+        var mid = Math.round(random(breakDna));
 
-        for(var i = 0; i < this.genes.length / this.breakDna; i++){
-            for(var j = 0; j < this.breakDna; j++){
-                var index = i * this.breakDna + j;
+        for(var i = 0; i < this.genes.length / breakDna; i++){
+            for(var j = 0; j < breakDna; j++){
+                var index = i * breakDna + j;
 
                 if(j < mid){
                     newgenes[index] = this.genes[index];
