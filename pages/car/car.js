@@ -1,5 +1,6 @@
 let STAGE_MAPPING   = 'MAPPING';
 let STAGE_PLAYING   = 'PLAYING';
+let STAGE_CHECKING  = 'CHECKING';
 let MAX_ANGLE_CHANGE = 0.2;
 let MAX_VELOCITY    = 2;
 let MIN_VELOCITY    = 2;
@@ -7,10 +8,12 @@ let QUARTER_PI      = 3.14159265358979323846 / 4;
 let lifespan        = 2000;
 let count           = 0;
 let robotCount      = 150;
+let start           = true;
 
 var link_bg = 'http://miromannino.com/wp-content/uploads/ur2009-map.png'; // car_game.png
 var color_street = [180,180,180,1];
 var map_game = [];
+var map_value = [];
 var bg;
 var stage = STAGE_MAPPING;
 var lineMapping = 0;
@@ -34,6 +37,7 @@ function setup() {
     // Coloca que nada faz parte do map
     for(var i = 0; i < width; i++){
         map_game[i] = [];
+        map_value[i] = [];
 
         for(var j = 0; j < height; j++){
             map_game[i][j] = false;
@@ -55,88 +59,90 @@ function draw() {
         
         case STAGE_PLAYING:
             read_keyboard();
-
-            // Anda com a contagem
-            count += 1;
-            document.getElementById("lifespan").innerText = count;
-            if(count == lifespan){
-                count = 0;
-            }else if(count == 50){
-                // Inicia barra da morte!
-                endGame = new EndGame();
-            }else if(count > 50){
-                endGame.update();
-                endGame.show();
-            }
-
+            
             car.update();
             car.show();
-
-            // adiciona os robot
-            stillAlive = false;
-            for(var i = 0; i < robotCount; i++){
-                robots[i].update();
-                robots[i].show();
-
-                if(!robots[i].crashed && !robots[i].endGame){
-                    stillAlive = true;
-                }
-            }
             
-            if(!stillAlive){
-                generations += 1;
-                document.getElementById("generations").innerText = generations;
+            if(start){
+                // Anda com a contagem
+                count += 1;
+                document.getElementById("lifespan").innerText = count;
+                if(count == lifespan){
+                    count = 0;
+                }else if(count == 50){
+                    // Inicia barra da morte!
+                    endGame = new EndGame();
+                }else if(count > 50){
+                    endGame.update();
+                    endGame.show();
+                }
 
-                // Já quebrou todos os carros
-                count = 0;
-
-                // Pega o robot com melhor aproveitamento
-                var maxFit = 0;
-                var bestCar;
+                // adiciona os robot
+                stillAlive = false;
                 for(var i = 0; i < robotCount; i++){
-                    if(robots[i].fitness > maxFit){
-                        maxFit = robots[i].fitness;
-                        bestCar = robots[i];
+                    robots[i].update();
+                    robots[i].show();
+
+                    if(!robots[i].crashed && !robots[i].endGame){
+                        stillAlive = true;
                     }
                 }
 
-                // Reinicia o melhor carro
-                bestCar.position   = createVector(width / 2, 100);
-                bestCar.velocity   = 0;
-                bestCar.angle      = PI;
-                bestCar.wheel      = 0;
-                bestCar.crashed    = false;
-                bestCar.endGame    = false;
-                bestCar.fitness    = 0;
+                if(!stillAlive){
+                    generations += 1;
+                    document.getElementById("generations").innerText = generations;
 
-                // Normaliza os dados
-                for(var i = 1; i < robotCount; i++){
-                    robots[i].fitness = robots[i].fitness / maxFit;
-                }
+                    // Já quebrou todos os carros
+                    count = 0;
 
-                // Cria a listas de robos baseado no fitness, onde quanto maior o fitness melhor
-                matingpool = [];
-                for(var i = 0; i < robotCount; i++){
-                    var n = robots[i].fitness * 100;
-                    for(var j = 0; j < n; j++){
-                        matingpool.push(robots[i]);
+                    // Pega o robot com melhor aproveitamento
+                    var maxFit = 0;
+                    var bestCar;
+                    for(var i = 0; i < robotCount; i++){
+                        if(robots[i].fitness > maxFit){
+                            maxFit = robots[i].fitness;
+                            bestCar = robots[i];
+                        }
                     }
-                }
 
-                // Cria a seleção dos robots, realizandos uma mistura entre eles
-                robots[0] = bestCar;
-                for(var i = 1; i < robotCount; i++){
-                    var parentA = random(matingpool).dna;
-                    var parentB = random(matingpool).dna;
-                    
-                    if(random() <= 0.01){
-                        var mutation = new Car();
-                        parentB = mutation.dna;
+                    // Reinicia o melhor carro
+                    bestCar.position    = createVector(width / 2, 100);
+                    bestCar.velocity    = 0;
+                    bestCar.angle       = PI;
+                    bestCar.wheel       = 0;
+                    bestCar.crashed     = false;
+                    bestCar.crashedTime = 0;
+                    bestCar.endGame     = false;
+                    bestCar.fitness     = 0;
+
+                    // Normaliza os dados
+                    for(var i = 1; i < robotCount; i++){
+                        robots[i].fitness = robots[i].fitness / maxFit;
                     }
-                    
-                    var child = parentA.crossover(parentB);
 
-                    robots[i] = new Car(child);
+                    // Cria a listas de robos baseado no fitness, onde quanto maior o fitness melhor
+                    matingpool = [];
+                    for(var i = 0; i < robotCount; i++){
+                        var n = robots[i].fitness * 20;
+                        for(var j = 0; j < n; j++){
+                            matingpool.push(robots[i]);
+                        }
+                    }
+
+                    // Cria a seleção dos robots, realizandos uma mistura entre eles
+                    robots[0] = bestCar;
+                    for(var i = 1; i < robotCount; i++){
+                        var parentA = random(matingpool).dna;
+                        var parentB = random(matingpool).dna;
+                        
+                        if(random() <= 0.01){
+                            parentB = new DNA();
+                        }
+                        
+                        var child = parentA.crossover(parentB);
+
+                        robots[i] = new Car(child);
+                    }
                 }
             }
 
@@ -152,6 +158,13 @@ function draw() {
             }
             break;
     }
+}
+
+function mouseClicked() {
+    console.log('MouseX ' + mouseX);
+    console.log('MouseY ' + mouseY);
+
+    return false;
 }
 
 function EndGame(){
@@ -272,6 +285,45 @@ function gameMapping(){
     lineMapping += 1;
 
     if (lineMapping > height) {
+        // Define uma barreira na chegada
+        for(var i = 65; i < 145; i++){
+            map_game[381][i] = false;
+            map_game[382][i] = false;
+
+            if(map_game[383][i]){
+                map_value[383][i] = 1;
+            }
+        }
+
+        // Adiciona valores no mapa
+        while(true){
+            no_more_value = true;
+
+            // Percorre todos os registros aumentando um do valor neles
+            for(var i = 0; i < width; i++){
+                for(var j = 0; j < height; j ++){
+                    if(map_value[i][j]){
+                        map_value[i][j] += 1;
+                    }
+                }
+            }
+
+            // Percorre todos os registros para verificar se tem um novo valor adicionado
+            for(var i = 0; i < width; i++){
+                for(var j = 0; j < height; j ++){
+                    if(!map_value[i][j] && map_game[i][j] && (map_value[i - 1][j] > 1 || map_value[i + 1][j] > 1 || map_value[i][j - 1] > 1 || map_value[i][j + 1] > 1)){
+                        map_value[i][j] = 1;
+                        no_more_value = false;
+                    }
+                }
+            }
+
+            if(no_more_value){
+                break;
+            }
+        }
+
+
         car = new Car();
         car.robot = false;
 
@@ -281,6 +333,7 @@ function gameMapping(){
         }
 
         stage = STAGE_PLAYING;
+        // stage = STAGE_CHECKING;
     }
 }
 
@@ -326,6 +379,7 @@ function Car(genes){
     this.robot      = true;
     this.dna        = new DNA(genes);
     this.fitness    = 0;
+    this.count      = 0;
 
     // Adiciona os sensores no carro
     this.sensorFront        = distanceToCollision(this.position.x, this.position.y, this.angle);
@@ -405,7 +459,8 @@ function Car(genes){
             this.sensorRight        = distanceToCollision(this.position.x, this.position.y, this.angle - HALF_PI);
             this.sensorLeft         = distanceToCollision(this.position.x, this.position.y, this.angle + HALF_PI);
         }else{
-            this.fitness = count;
+            this.count = count;
+            this.fitness = map_value[Math.trunc(this.position.x)][Math.trunc(this.position.y)];
         }
     }
 
@@ -522,13 +577,14 @@ function DNA(genes){
 
         // Preenche os genes aleatoriamente
         for(var i = 0; i < lifespan; i++){
-            this.genes[i] = { angle: random(-MAX_ANGLE_CHANGE, MAX_ANGLE_CHANGE), velocity: random(MIN_VELOCITY, MAX_VELOCITY) }
+            var randomAngle = Math.round(random(-MAX_ANGLE_CHANGE, MAX_ANGLE_CHANGE) * 100) / 100;
+            this.genes[i] = { angle: randomAngle, velocity: random(MIN_VELOCITY, MAX_VELOCITY) }
         }
     }
 
     this.crossover = function(partner){
         var newgenes = [];
-        var mid = floor(random(this.breakDna));
+        var mid = Math.round(random(this.breakDna));
 
         for(var i = 0; i < this.genes.length / this.breakDna; i++){
             for(var j = 0; j < this.breakDna; j++){
