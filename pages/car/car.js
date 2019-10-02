@@ -1,31 +1,33 @@
-let STAGE_MAPPING   = 'MAPPING';
-let STAGE_PLAYING   = 'PLAYING';
-let STAGE_CHECKING  = 'CHECKING';
-let MAX_ANGLE_CHANGE = 0.2;
-let MAX_VELOCITY    = 2;
-let MIN_VELOCITY    = 2;
-let QUARTER_PI      = 3.14159265358979323846 / 4;
-let lifespan        = 2000;
-let count           = 0;
-let robotCount      = 150;
-let start           = true;
+// Cria algumas constantes
+let STAGE_MAPPING       = 'MAPPING';
+let STAGE_EVALUATE      = 'VALUE_MAP';
+let STAGE_PLAYING       = 'PLAYING';
+let STAGE_CHECKING      = 'CHECKING';
+let MAX_ANGLE_CHANGE    = 0.2;                          // Angulo maxima para fazer curva
+let MAX_VELOCITY        = 2;                            // Velocidade Maxima do carro
+let MIN_VELOCITY        = 2;                            // Velocidade Minima do carro
+let QUARTER_PI          = 3.14159265358979323846 / 4;   // 1/4 do valor do PI
+let MAX_COUNT           = 2000;                         // Quantidade maxima de quadras até reiniciar tudo
+let MAX_ROBOT           = 100;                          // Quantidade maxima de robos
+let start               = true;                         // Flag para saber se os robos devem estar funcionando ou não
 
-var link_bg = 'http://miromannino.com/wp-content/uploads/ur2009-map.png'; // car_game.png
-var color_street = [180,180,180,1];
-var map_game = [];
-var map_value = [];
-var bg;
-var stage = STAGE_MAPPING;
-var lineMapping = 0;
-var car;
-var robots = [];
-var angle;
-var velocity;
-var density;
-var endGame;
-var matingpool = [];
-var generations = 1;
+let link_bg             = 'http://miromannino.com/wp-content/uploads/ur2009-map.png'; // car_game.png // Imagem de fundo
+let color_street        = [180,180,180,1];              // Corres utilizadas para definir o que é rua e o que não é rua        
+let stage               = STAGE_MAPPING;                // Estado que o jogo se encontra
+let count               = 0;                            // Quantidade de quadros executados
+let map_game            = [];                           // Mapeado a trajetoria da pista     
+let map_value           = [];                           // Adicionado valores para determinar onde é mais perto da chegada
+let robots              = [];                           // Array dos robos
+let matingpool          = [];                           // Carros que podem compor a proxima geração
+let lineMapping         = 0;                            // Posição que a linha se encontra no mapeamento    
+let bg;                                                 // Imagem de fundo
+let car;                                                // Carro do jogador
+let density;                                            // Densidade de pixel na imagem
+let endGame;                                            // Linha que vem destruindo os carros que ficam parados (Não esta funcionando corretamente)
 
+let generations         = 1;                            // Controle de gerações
+
+// ---------------------------------- Funções do p5js ------------------------------------ //
 function preload() {
     // Carrega a imagem de fundo
     bg = loadImage(link_bg);
@@ -34,27 +36,33 @@ function preload() {
 function setup() {
     createCanvas(759, 389);
 
-    // Coloca que nada faz parte do map
-    for(var i = 0; i < width; i++){
-        map_game[i] = [];
-        map_value[i] = [];
+    // Inicia os valores do mapa
+    initializeMap();
 
-        for(var j = 0; j < height; j++){
-            map_game[i][j] = false;
-        }
-    }
-
+    // Adiciona o plano de fundo para capturar todos os pixel presente nele
     background(bg);
+
+    // Carrega os pixels para conseguir mapear a estrada
     loadPixels();
     density = pixelDensity();
 }
 
 function draw() {
+    // Adiciona o plano de fundo
     background(bg);
     
+    // Define o que vai mostrar de acordo com o estado do jogo
     switch (stage) {
         case STAGE_MAPPING:
+            // Mapeia a estrada
             gameMapping();
+
+            break;
+
+        case STAGE_EVALUATE:
+            // Adiciona valores no mapa
+            evaluateMap();
+
             break;
         
         case STAGE_PLAYING:
@@ -67,7 +75,7 @@ function draw() {
                 // Anda com a contagem
                 count += 1;
                 document.getElementById("lifespan").innerText = count;
-                if(count == lifespan){
+                if(count == MAX_COUNT){
                     count = 0;
                 }else if(count == 50){
                     // Inicia barra da morte!
@@ -79,7 +87,7 @@ function draw() {
 
                 // adiciona os robot
                 stillAlive = false;
-                for(var i = 0; i < robotCount; i++){
+                for(var i = 0; i < MAX_ROBOT; i++){
                     robots[i].update();
                     robots[i].show();
 
@@ -98,7 +106,7 @@ function draw() {
                     // Pega o robot com melhor aproveitamento
                     var maxFit = 0;
                     var bestCar;
-                    for(var i = 0; i < robotCount; i++){
+                    for(var i = 0; i < MAX_ROBOT; i++){
                         if(robots[i].fitness > maxFit){
                             maxFit = robots[i].fitness;
                             bestCar = robots[i];
@@ -116,26 +124,26 @@ function draw() {
                     bestCar.fitness     = 0;
 
                     // Normaliza os dados
-                    for(var i = 1; i < robotCount; i++){
+                    for(var i = 1; i < MAX_ROBOT; i++){
                         robots[i].fitness = robots[i].fitness / maxFit;
                     }
 
                     // Cria a listas de robos baseado no fitness, onde quanto maior o fitness melhor
                     matingpool = [];
-                    for(var i = 0; i < robotCount; i++){
-                        var n = robots[i].fitness * 20;
+                    for(var i = 0; i < MAX_ROBOT; i++){
+                        var n = robots[i].fitness * 10;
                         for(var j = 0; j < n; j++){
                             matingpool.push(robots[i]);
                         }
                     }
 
                     // Cria a seleção dos robots, realizandos uma mistura entre eles
-                    robots[0] = bestCar;
-                    for(var i = 1; i < robotCount; i++){
+                    // robots[0] = bestCar;
+                    for(var i = 0; i < MAX_ROBOT; i++){
                         var parentA = random(matingpool).dna;
                         var parentB = random(matingpool).dna;
                         
-                        if(random() <= 0.01){
+                        if(random() <= 0.05){ // Adiciona mutação apenas em 5 por cento
                             parentB = new DNA();
                         }
                         
@@ -165,6 +173,20 @@ function mouseClicked() {
     console.log('MouseY ' + mouseY);
 
     return false;
+}
+
+// ------------------------------------------------------------------------------------------ //
+
+function initializeMap(){
+    // Coloca que nada faz parte do map
+    for(var i = 0; i < width; i++){
+        map_game[i]     = [];
+        map_value[i]    = [];
+
+        for(var j = 0; j < height; j++){
+            map_game[i][j] = false;
+        }
+    }
 }
 
 function EndGame(){
@@ -264,20 +286,60 @@ function EndGame(){
     }
 }
 
+function evaluateMap(){
+    no_more_value = true;
+
+    // Percorre todos os registros aumentando um do valor neles
+    for(var i = 0; i < width; i++){
+        for(var j = 0; j < height; j ++){
+            if(map_value[i][j]){
+                map_value[i][j] += 1;
+            }
+        }
+    }
+
+    // Percorre todos os registros para verificar se tem um novo valor adicionado
+    for(var i = 0; i < width; i++){
+        for(var j = 0; j < height; j ++){
+            if(!map_value[i][j] && map_game[i][j] && (map_value[i - 1][j] > 1 || map_value[i + 1][j] > 1 || map_value[i][j - 1] > 1 || map_value[i][j + 1] > 1)){
+                map_value[i][j] = 1;
+                
+                // Marca que teve valor alterado
+                no_more_value = false;
+
+                // Marca um ponto azul neste pixel
+                stroke(0,0,255);
+                point(i, j);
+            }
+        }
+    }
+
+    if(no_more_value){
+        // Neste caso esta na hora iniciar o projeto de verdade
+        car = new Car();
+        car.robot = false;
+
+        // adiciona os robot
+        for(var i = 0; i < MAX_ROBOT; i++){
+            robots[i] = new Car();
+        }
+
+        // Muda o estado do jogo para iniciado
+        stage = STAGE_PLAYING;
+    }
+}
+
 function gameMapping(){
+    // Cria uma linha, para dar a impressão que algo esta sendo executado
     stroke(226, 204, 0);
     line(0, lineMapping - 1, width, lineMapping - 1);
     
+    // Percorre todos os pixel horizontalmente
     for(var i = 0; i < width; i++){
-        // Mappeia esta linha
-        let off = (lineMapping * width + i) * density * 4;
-        let components = [
-            pixels[off],
-            pixels[off + 1],
-            pixels[off + 2],
-            pixels[off + 3]
-        ];
+        let off         = (lineMapping * width + i) * density * 4;
+        let components  = [pixels[off], pixels[off + 1], pixels[off + 2], pixels[off + 3]];
 
+        // Verifica se este pixel é uma estrada ou não
         map_game[i][lineMapping] = isStreet(components);
     }
 
@@ -295,45 +357,8 @@ function gameMapping(){
             }
         }
 
-        // Adiciona valores no mapa
-        while(true){
-            no_more_value = true;
-
-            // Percorre todos os registros aumentando um do valor neles
-            for(var i = 0; i < width; i++){
-                for(var j = 0; j < height; j ++){
-                    if(map_value[i][j]){
-                        map_value[i][j] += 1;
-                    }
-                }
-            }
-
-            // Percorre todos os registros para verificar se tem um novo valor adicionado
-            for(var i = 0; i < width; i++){
-                for(var j = 0; j < height; j ++){
-                    if(!map_value[i][j] && map_game[i][j] && (map_value[i - 1][j] > 1 || map_value[i + 1][j] > 1 || map_value[i][j - 1] > 1 || map_value[i][j + 1] > 1)){
-                        map_value[i][j] = 1;
-                        no_more_value = false;
-                    }
-                }
-            }
-
-            if(no_more_value){
-                break;
-            }
-        }
-
-
-        car = new Car();
-        car.robot = false;
-
-        // adiciona os robot
-        for(var i = 0; i < robotCount; i++){
-            robots[i] = new Car();
-        }
-
-        stage = STAGE_PLAYING;
-        // stage = STAGE_CHECKING;
+        // Muda para o estado de avaliação do mapa
+        stage = STAGE_EVALUATE;
     }
 }
 
@@ -501,6 +526,10 @@ function Car(genes){
 }
 
 function read_keyboard(){
+    // Cria as variaveis do angulo e velocidade
+    var angle;
+    var velocity;
+    
     // Verifica se a seta esta sendo precionada
     right_arrow = keyIsDown(RIGHT_ARROW);
     left_arrow  = keyIsDown(LEFT_ARROW);
@@ -576,7 +605,7 @@ function DNA(genes){
         this.genes = [];
 
         // Preenche os genes aleatoriamente
-        for(var i = 0; i < lifespan; i++){
+        for(var i = 0; i < MAX_COUNT; i++){
             var randomAngle = Math.round(random(-MAX_ANGLE_CHANGE, MAX_ANGLE_CHANGE) * 100) / 100;
             this.genes[i] = { angle: randomAngle, velocity: random(MIN_VELOCITY, MAX_VELOCITY) }
         }
