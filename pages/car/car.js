@@ -3,9 +3,9 @@ let STAGE_MAPPING       = 'MAPPING';
 let STAGE_EVALUATE      = 'VALUE_MAP';
 let STAGE_PLAYING       = 'PLAYING';
 let STAGE_CHECKING      = 'CHECKING';
-let MAX_ANGLE_CHANGE    = 0.15;                          // Angulo maxima para fazer curva
+let MAX_ANGLE_CHANGE    = 0.15;                         // Angulo maxima para fazer curva
 let MAX_VELOCITY        = 2;                            // Velocidade Maxima do carro
-let MIN_VELOCITY        = 2;                            // Velocidade Minima do carro
+let MIN_VELOCITY        = 0.5;                          // Velocidade Minima do carro
 let QUARTER_PI          = 3.14159265358979323846 / 4;   // 1/4 do valor do PI
 let MAX_COUNT           = 2000;                         // Quantidade maxima de quadras até reiniciar tudo
 let MAX_ROBOT           = 100;                          // Quantidade maxima de robos
@@ -17,16 +17,12 @@ let stage               = STAGE_MAPPING;                // Estado que o jogo se 
 let count               = 0;                            // Quantidade de quadros executados
 let map_game            = [];                           // Mapeado a trajetoria da pista     
 let map_value           = [];                           // Adicionado valores para determinar onde é mais perto da chegada
-let robots              = [];                           // Array dos robos
-let matingpool          = [];                           // Carros que podem compor a proxima geração
-let lineMapping         = 0;                            // Posição que a linha se encontra no mapeamento    
+let lineMapping         = 0;                            // Posição que a linha se encontra no mapeamento
 let bg;                                                 // Imagem de fundo
 let car;                                                // Carro do jogador
 let density;                                            // Densidade de pixel na imagem
-let endGame;                                            // Linha que vem destruindo os carros que ficam parados (Não esta funcionando corretamente)
-let breakDna;
-
-let generations         = 1;                            // Controle de gerações
+let endLine;                                            // Linha que vem destruindo os carros que ficam parados (Não esta funcionando corretamente)
+let population;
 
 // ---------------------------------- Funções do p5js ------------------------------------ //
 function preload() {
@@ -67,94 +63,28 @@ function draw() {
             break;
         
         case STAGE_PLAYING:
+            // Realiza a leitura do teclado (usado para movimentar o carrinho controlado)
             read_keyboard();
             
+            // Atualiza o carro
             car.update();
             car.show();
             
             if(start){
-                // Anda com a contagem
+                // Controla as ações dos carros robos
                 count += 1;
+                
+                // Atualiza a linha que mata os carros que estão andando ao contrario ou parado
+                endLine.update();
+                endLine.show();
+
+                // Atualiza todos os robos
+                population.update();
+                population.show();
+
+                // Atualiza campos que estão em tela para acompanhar o desenvolvimento
+                document.getElementById("generations").innerText = population.generations;
                 document.getElementById("lifespan").innerText = count;
-                if(count == MAX_COUNT){
-                    count = 0;
-                }else if(count == 1){
-                    // Inicia barra da morte!
-                    endGame = new EndGame();
-                }else if(count > 1){
-                    endGame.update();
-                    endGame.show();
-                }
-
-                // adiciona os robot
-                stillAlive = false;
-                for(var i = 0; i < MAX_ROBOT; i++){
-                    robots[i].update();
-                    robots[i].show();
-
-                    if(!robots[i].crashed && !robots[i].endGame){
-                        stillAlive = true;
-                    }
-                }
-
-                if(!stillAlive){
-                    generations += 1;
-                    document.getElementById("generations").innerText = generations;
-
-                    // Define a quebra de dna através do tempo maior dividido por 2
-                    breakDna = Math.round(count / 2);
-
-                    // Já quebrou todos os carros
-                    count = 0;
-
-                    // Pega o robot com melhor aproveitamento
-                    var maxFit = 0;
-                    var bestCar;
-                    for(var i = 0; i < MAX_ROBOT; i++){
-                        if(robots[i].fitness > maxFit){
-                            maxFit = robots[i].fitness;
-                            bestCar = robots[i];
-                        }
-                    }
-
-                    // Reinicia o melhor carro
-                    bestCar.position    = createVector(width / 2, 100);
-                    bestCar.velocity    = 0;
-                    bestCar.angle       = PI;
-                    bestCar.wheel       = 0;
-                    bestCar.crashed     = false;
-                    bestCar.endGame     = false;
-                    bestCar.fitness     = 0;
-
-                    // Normaliza os dados
-                    for(var i = 1; i < MAX_ROBOT; i++){
-                        robots[i].fitness = robots[i].fitness / maxFit;
-                    }
-
-                    // Cria a listas de robos baseado no fitness, onde quanto maior o fitness melhor
-                    matingpool = [];
-                    for(var i = 0; i < MAX_ROBOT; i++){
-                        var n = robots[i].fitness * 100;
-                        for(var j = 0; j < n; j++){
-                            matingpool.push(robots[i]);
-                        }
-                    }
-
-                    // Cria a seleção dos robots, realizandos uma mistura entre eles
-                    robots[0] = bestCar;
-                    for(var i = 1; i < MAX_ROBOT; i++){
-                        var parentA = random(matingpool).dna;
-                        var parentB = random(matingpool).dna;
-                        
-                        if(random() <= 0.01){ // Adiciona mutação apenas em 1 por cento
-                            parentB = new DNA();
-                        }
-                        
-                        var child = parentA.crossover(parentB);
-
-                        robots[i] = new Car(child);
-                    }
-                }
             }
 
             break;
@@ -180,6 +110,7 @@ function mouseClicked() {
 
 // ------------------------------------------------------------------------------------------ //
 
+// Inicia o mapa com todos valores falsos
 function initializeMap(){
     // Coloca que nada faz parte do map
     for(var i = 0; i < width; i++){
@@ -192,50 +123,7 @@ function initializeMap(){
     }
 }
 
-function EndGame(){
-    this.x1 = 380;
-    this.y1 = 0;
-    this.x2 = 380;
-    this.y2 = 140;
-    this.value = 0;
-    this.points = [];
-    this.showLine = false;
-
-    this.checkEndGame = function(car){
-        // Verifica o valor atual do carro, caso seja menor que o valor do fim do jogo ele deve morrer
-        if(map_value[Math.trunc(car.position.x)][Math.trunc(car.position.y)] <= this.value){
-            return true;
-        }
-
-        return false;
-    }
-
-    this.update = function(){
-        this.value += 1;
-        this.points = [];
-                
-        // Verifica quais os pontos tem o valor atual do fim do jogo
-        for(var i = 0; i < width; i++){
-            for(var j = 0; j < height; j ++){
-                if(map_value[i][j] == this.value){
-                    this.points.push(createVector(i,j));
-                }
-            }
-        }
-    }
-
-    this.show = function(){
-        if(this.showLine){
-            stroke(0, 0, 255);
-        
-            // Printa todos os pontos
-            for(var i = 0; i < this.points.length; i++){
-                point(this.points[i].x, this.points[i].y);
-            }
-        }
-    }
-}
-
+// Adiciona valor no mapa
 function evaluateMap(){
     no_more_value = true;
 
@@ -269,10 +157,11 @@ function evaluateMap(){
         car = new Car();
         car.robot = false;
 
-        // adiciona os robot
-        for(var i = 0; i < MAX_ROBOT; i++){
-            robots[i] = new Car();
-        }
+        // Inicializa a população dos carros
+        population = new Population();
+
+        // Já cria a linha de final de jogo
+        endLine = new EndLine();
 
         // Muda o estado do jogo para iniciado
         stage = STAGE_PLAYING;
@@ -328,6 +217,59 @@ function isStreet(a){
     return false;
 }
 
+// Linha do fim da rodada (matar os carros que não terminarem o processo)
+function EndLine(){
+    this.x1 = 380;
+    this.y1 = 0;
+    this.x2 = 380;
+    this.y2 = 140;
+    this.value = 0;
+    this.points = [];
+    this.showLine = true;
+
+    this.checkEndLine = function(car){
+        // Verifica o valor atual do carro, caso seja menor que o valor do fim do jogo ele deve morrer
+        if(map_value[Math.trunc(car.position.x)][Math.trunc(car.position.y)] <= this.value){
+            return true;
+        }
+
+        return false;
+    }
+
+    this.update = function(){
+        if(count == 1){
+            this.x1 = 380;
+            this.y1 = 0;
+            this.x2 = 380;
+            this.y2 = 140;
+            this.value = 0;
+        }else if(count > 1){
+            this.value += 1;
+            this.points = [];
+                    
+            // Verifica quais os pontos tem o valor atual do fim do jogo
+            for(var i = 0; i < width; i++){
+                for(var j = 0; j < height; j ++){
+                    if(map_value[i][j] == this.value){
+                        this.points.push(createVector(i,j));
+                    }
+                }
+            }
+        }
+    }
+
+    this.show = function(){
+        if(this.showLine){
+            stroke(0, 0, 255);
+        
+            // Printa todos os pontos
+            for(var i = 0; i < this.points.length; i++){
+                point(this.points[i].x, this.points[i].y);
+            }
+        }
+    }
+}
+
 function arrayIsEqual(a, b){
     if(a.length != b.length){
         return false;
@@ -342,6 +284,96 @@ function arrayIsEqual(a, b){
     return true;
 }
 
+// Cria a população para controlar os robos
+function Population(){
+    this.robots = [];
+    this.matingpool = [];
+    this.alive = 0;
+    this.generations = 1;
+
+    // Inicializa os carros
+    for(var i = 0; i < MAX_ROBOT; i++){
+        this.robots[i] = new Car();
+    }
+
+    this.update = function(){
+        // Por padrão define todos os robos como não funcionando
+        this.alive = 0;
+
+        // Atualiza todos os robos
+        for(var i = 0; i < MAX_ROBOT; i++){
+            this.robots[i].update();
+    
+            if(!this.robots[i].crashed && !this.robots[i].endLine){
+                this.alive += 1;
+            }
+        }
+
+        // Verifica se será reinicado a geração ou se ainda tem carro funcionando
+        if(this.alive == 0){
+            // Já quebrou todos os carros
+            count = 0;
+
+            // Avalia a performance dos carros 
+            this.evaluate();
+            
+            // Evolue para proxima geração
+            this.evolve();
+        }
+    }
+
+    this.evolve = function(){
+        // Cria a listas de robos baseado no fitness, onde quanto maior o fitness melhor
+        this.matingpool = [];
+        for(var i = 0; i < MAX_ROBOT; i++){
+            var n = this.robots[i].fitness * 100;
+            for(var j = 0; j < n; j++){
+                this.matingpool.push(this.robots[i]);
+            }
+        }
+
+        // Cria a seleção dos robots, realizandos uma mistura entre eles
+        for(var i = 0; i < MAX_ROBOT; i++){
+            var parentA = random(this.matingpool).dna;
+            var parentB = random(this.matingpool).dna;
+            
+            if(random() <= 0.01){ // Adiciona mutação apenas em 1 por cento
+                parentB = new DNA();
+            }
+            
+            var child = parentA.crossover(parentB);
+
+            this.robots[i] = new Car(child);
+        }
+    }
+
+    this.evaluate = function(){
+        // Esta avançando a geração
+        this.generations += 1;
+
+        // Pega o melhor valor
+        var maxFit = 0;
+        for(var i = 0; i < MAX_ROBOT; i++){
+            if(this.robots[i].fitness > maxFit){
+                maxFit = this.robots[i].fitness;
+            }
+        }
+
+        // Normaliza os dados
+        for(var i = 0; i < MAX_ROBOT; i++){
+            this.robots[i].fitness = this.robots[i].fitness / maxFit;
+            console.log(this.robots[i].fitness);
+        }
+    }
+
+    this.show = function(){
+        // Exibe o carro
+        for(var i = 0; i < MAX_ROBOT; i++){
+            this.robots[i].show();
+        }
+    }
+}
+
 function Car(genes){
     // Inicia o carro no ponto inicial
     this.position   = createVector(width / 2, 100);
@@ -349,7 +381,7 @@ function Car(genes){
     this.angle      = PI;
     this.wheel      = 0;
     this.crashed    = false;
-    this.endGame    = false;
+    this.endLine    = false;
     this.showSensor = false;
     this.robot      = true;
     this.dna        = new DNA(genes);
@@ -371,7 +403,7 @@ function Car(genes){
 
     this.update = function(){
         if(this.robot){
-            if(!this.crashed && !this.endGame){
+            if(!this.crashed && !this.endLine){
                 // Adiciona aleatoriamente a acao do carro
                 this.angle += this.dna.genes[count].angle;
                 this.velocity = this.dna.genes[count].velocity;
@@ -416,12 +448,12 @@ function Car(genes){
         // Verifica se a nova posição não ira bater em nada
         this.crashed = checkCollision(newPositionX, newPositionY);
         
-        if(!this.crashed && endGame != undefined){
+        if(!this.crashed && endLine != undefined){
             // Verifica se a linha da morte alcancou este carro
-            this.endGame = endGame.checkEndGame(this);
+            this.endLine = endLine.checkEndLine(this);
         }
 
-        if(!this.crashed && !this.endGame){
+        if(!this.crashed && !this.endLine){
             // Atualiza o posicionamento do carro
             this.position.x     = newPositionX;
             this.position.y     = newPositionY;
@@ -435,7 +467,7 @@ function Car(genes){
             this.sensorLeft         = distanceToCollision(this.position.x, this.position.y, this.angle + HALF_PI);
         }else{
             this.count = count;
-            this.fitness = map_value[Math.trunc(this.position.x)][Math.trunc(this.position.y)];
+            this.fitness = map_value[Math.trunc(this.position.x)][Math.trunc(this.position.y)] * 2;
         }
     }
 
@@ -448,7 +480,7 @@ function Car(genes){
         noStroke();
 
         if(this.robot){
-            if(this.endGame){
+            if(this.endLine){
                 fill(50,30,50);
             }else if(this.crashed){
                 fill(100,30,100);
@@ -547,8 +579,6 @@ function distanceToCollision(x, y, angle){
 }
 
 function DNA(genes){
-    this.breakDna = 50;
-
     if(genes){
         this.genes = genes;
     }else{
@@ -563,6 +593,7 @@ function DNA(genes){
 
     this.crossover = function(partner){
         var newgenes = [];
+        var breakDna = Math.round(random(100,1000));
         var mid = Math.round(random(breakDna));
 
         for(var i = 0; i < this.genes.length / breakDna; i++){
