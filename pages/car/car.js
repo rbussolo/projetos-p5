@@ -3,14 +3,15 @@ let STAGE_MAPPING       = 'MAPPING';
 let STAGE_EVALUATE      = 'VALUE_MAP';
 let STAGE_PLAYING       = 'PLAYING';
 let STAGE_CHECKING      = 'CHECKING';
+let MAX_SENSORS         = 7;
 let MAX_ANGLE_CHANGE    = 0.15;                         // Angulo maxima para fazer curva
 let MAX_VELOCITY        = 2;                            // Velocidade Maxima do carro
-let MIN_VELOCITY        = 0.5;                          // Velocidade Minima do carro
+let MIN_VELOCITY        = 2;                            // Velocidade Minima do carro
 let QUARTER_PI          = 3.14159265358979323846 / 4;   // 1/4 do valor do PI
 let MAX_COUNT           = 2000;                         // Quantidade maxima de quadras até reiniciar tudo
 let MAX_ROBOT           = 100;                          // Quantidade maxima de robos
 let start               = true;                         // Flag para saber se os robos devem estar funcionando ou não
-
+let seq                 = 1;                            // Id sequencial para identificar cada carro
 let link_bg             = 'http://miromannino.com/wp-content/uploads/ur2009-map.png'; // car_game.png // Imagem de fundo
 let color_street        = [180,180,180,1];              // Corres utilizadas para definir o que é rua e o que não é rua        
 let stage               = STAGE_MAPPING;                // Estado que o jogo se encontra
@@ -23,6 +24,7 @@ let car;                                                // Carro do jogador
 let density;                                            // Densidade de pixel na imagem
 let endLine;                                            // Linha que vem destruindo os carros que ficam parados (Não esta funcionando corretamente)
 let population;
+let sensor_angle;
 
 // ---------------------------------- Funções do p5js ------------------------------------ //
 function preload() {
@@ -42,6 +44,9 @@ function setup() {
     // Carrega os pixels para conseguir mapear a estrada
     loadPixels();
     density = pixelDensity();
+
+    // Define a distancia de cada sensor
+    sensor_angle = PI / MAX_SENSORS;
 }
 
 function draw() {
@@ -334,14 +339,18 @@ function Population(){
 
         // Cria a seleção dos robots, realizandos uma mistura entre eles
         for(var i = 0; i < MAX_ROBOT; i++){
-            var parentA = random(this.matingpool).dna;
-            var parentB = random(this.matingpool).dna;
+            var parentA = random(this.matingpool);
+            var parentB;
             
             if(random() <= 0.01){ // Adiciona mutação apenas em 1 por cento
-                parentB = new DNA();
+                parentB = new Car();
+            }else{
+                do{
+                    parentB = random(this.matingpool);
+                }while(parentA.id == parentB.id);
             }
             
-            var child = parentA.crossover(parentB);
+            var child = parentA.dna.crossover(parentB.dna);
 
             this.robots[i] = new Car(child);
         }
@@ -362,7 +371,6 @@ function Population(){
         // Normaliza os dados
         for(var i = 0; i < MAX_ROBOT; i++){
             this.robots[i].fitness = this.robots[i].fitness / maxFit;
-            console.log(this.robots[i].fitness);
         }
     }
 
@@ -376,6 +384,7 @@ function Population(){
 
 function Car(genes){
     // Inicia o carro no ponto inicial
+    this.id         = seq;
     this.position   = createVector(width / 2, 100);
     this.velocity   = 0;
     this.angle      = PI;
@@ -387,14 +396,23 @@ function Car(genes){
     this.dna        = new DNA(genes);
     this.fitness    = 0;
     this.count      = 0;
+    this.sensors    = [];
 
-    // Adiciona os sensores no carro
-    this.sensorFront        = distanceToCollision(this.position.x, this.position.y, this.angle);
-    this.sensorFrontRight   = distanceToCollision(this.position.x, this.position.y, this.angle - QUARTER_PI);
-    this.sensorFrontLeft    = distanceToCollision(this.position.x, this.position.y, this.angle + QUARTER_PI);
-    this.sensorBack         = distanceToCollision(this.position.x, this.position.y, this.angle + PI);
-    this.sensorRight        = distanceToCollision(this.position.x, this.position.y, this.angle - HALF_PI);
-    this.sensorLeft         = distanceToCollision(this.position.x, this.position.y, this.angle + HALF_PI);
+    // Avanca o sequencial
+    seq += 1;
+
+    this.updateSensor = function(){
+        for(var i = 0; i <= MAX_SENSORS; i++){
+            var angle = this.angle - HALF_PI + (i * sensor_angle);
+            this.sensors[i] = distanceToCollision(this.position.x, this.position.y, angle);
+        }
+
+        // Adiciona mais um sensor na frente
+        this.sensors[MAX_SENSORS + 1] = distanceToCollision(this.position.x, this.position.y, this.angle);
+    }
+
+    // Atualiza os sensores
+    this.updateSensor();
 
     this.direction = function(velocity, angle){
         this.wheel = angle;
@@ -407,7 +425,7 @@ function Car(genes){
                 // Adiciona aleatoriamente a acao do carro
                 this.angle += this.dna.genes[count].angle;
                 this.velocity = this.dna.genes[count].velocity;
-
+                
                 // Movimenta o carro
                 this.move();
             }
@@ -459,12 +477,7 @@ function Car(genes){
             this.position.y     = newPositionY;
 
             // Atualiza os sensores
-            this.sensorFront        = distanceToCollision(this.position.x, this.position.y, this.angle);
-            this.sensorFrontRight   = distanceToCollision(this.position.x, this.position.y, this.angle - QUARTER_PI);
-            this.sensorFrontLeft    = distanceToCollision(this.position.x, this.position.y, this.angle + QUARTER_PI);
-            this.sensorBack         = distanceToCollision(this.position.x, this.position.y, this.angle + PI);
-            this.sensorRight        = distanceToCollision(this.position.x, this.position.y, this.angle - HALF_PI);
-            this.sensorLeft         = distanceToCollision(this.position.x, this.position.y, this.angle + HALF_PI);
+            this.updateSensor();
         }else{
             this.count = count;
             this.fitness = map_value[Math.trunc(this.position.x)][Math.trunc(this.position.y)] * 2;
@@ -497,12 +510,11 @@ function Car(genes){
         if(this.showSensor){
             // Adiciona as linhas dos sensores
             stroke(0,0,255);
-            line(this.position.x, this.position.y, this.sensorFront.x, this.sensorFront.y);
-            line(this.position.x, this.position.y, this.sensorFrontLeft.x, this.sensorFrontLeft.y);
-            line(this.position.x, this.position.y, this.sensorFrontRight.x, this.sensorFrontRight.y);
-            line(this.position.x, this.position.y, this.sensorBack.x, this.sensorBack.y);
-            line(this.position.x, this.position.y, this.sensorRight.x, this.sensorRight.y);
-            line(this.position.x, this.position.y, this.sensorLeft.x, this.sensorLeft.y);
+
+            // Atualiza os sensores
+            for(var i = 0; i < this.sensors.length; i++){
+                line(this.position.x, this.position.y, this.sensors[i].x, this.sensors[i].y);
+            }
         }
     }
 }
@@ -583,7 +595,7 @@ function DNA(genes){
         this.genes = genes;
     }else{
         this.genes = [];
-
+        
         // Preenche os genes aleatoriamente
         for(var i = 0; i < MAX_COUNT; i++){
             var randomAngle = Math.round(random(-MAX_ANGLE_CHANGE, MAX_ANGLE_CHANGE) * 100) / 100;
@@ -595,8 +607,9 @@ function DNA(genes){
         var newgenes = [];
         var breakDna = Math.round(random(100,1000));
         var mid = Math.round(random(breakDna));
+        var length = Math.trunc(this.genes.length / breakDna);
 
-        for(var i = 0; i < this.genes.length / breakDna; i++){
+        for(var i = 0; i < length; i++){
             for(var j = 0; j < breakDna; j++){
                 var index = i * breakDna + j;
 
@@ -606,6 +619,11 @@ function DNA(genes){
                     newgenes[index] = partner.genes[index];
                 }
             }
+        }
+
+        // Garantir que tenha o mesmo tanto de genes (o antigo com o novo)
+        for(var i = newgenes.length; i < MAX_COUNT; i++){
+            newgenes[i] = this.genes[i];
         }
         
         return newgenes;
