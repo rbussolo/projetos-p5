@@ -6,7 +6,7 @@ let STAGE_CHECKING      = 'CHECKING';
 let MAX_SENSORS         = 7;
 let MAX_ANGLE_CHANGE    = 0.15;                         // Angulo maxima para fazer curva
 let MAX_VELOCITY        = 2;                            // Velocidade Maxima do carro
-let MIN_VELOCITY        = 2;                            // Velocidade Minima do carro
+let MIN_VELOCITY        = 0.5;                            // Velocidade Minima do carro
 let QUARTER_PI          = 3.14159265358979323846 / 4;   // 1/4 do valor do PI
 let MAX_COUNT           = 2000;                         // Quantidade maxima de quadras até reiniciar tudo
 let MAX_ROBOT           = 100;                          // Quantidade maxima de robos
@@ -25,6 +25,8 @@ let density;                                            // Densidade de pixel na
 let endLine;                                            // Linha que vem destruindo os carros que ficam parados (Não esta funcionando corretamente)
 let population;
 let sensor_angle;
+let using_net_neural    = true;
+let sinValue            = [0, 0.43388373911, 0.78183148246, 0.97492791218, 0.97492791218, 0.78183148246, 0.43388373911, 0, 1];
 
 // ---------------------------------- Funções do p5js ------------------------------------ //
 function preload() {
@@ -322,8 +324,36 @@ function Population(){
             // Avalia a performance dos carros 
             this.evaluate();
             
-            // Evolue para proxima geração
-            this.evolve();
+            if(using_net_neural){
+                // Vamos variar o "peso" com o grau de aprendizado
+                this.balanceNetwork();
+            }else{
+                // Evolue para proxima geração
+                this.evolve();
+            }
+        }
+    }
+
+    this.balanceNetwork = function(){
+        // Cria a listas de robos baseado no fitness, onde quanto maior o fitness melhor
+        this.matingpool = [];
+        for(var i = 0; i < MAX_ROBOT; i++){
+            var n = this.robots[i].fitness * 100;
+            for(var j = 0; j < n; j++){
+                this.matingpool.push(this.robots[i]);
+            }
+        }
+
+        // Cria a seleção dos robots, realizandos uma mistura entre eles
+        for(var i = 0; i < MAX_ROBOT; i++){
+            var robo = random(this.matingpool);
+            var bias = robo.neural.bias + random(robo.neural.levelLearning);
+
+            if(random() <= 0.01){ // Adiciona mutação apenas em 1 por cento
+                bias = random(1,200);
+            }
+
+            this.robots[i] = new Car(bias);
         }
     }
 
@@ -382,7 +412,16 @@ function Population(){
     }
 }
 
-function Car(genes){
+function Car(ia){
+    var genes;
+    var bias;
+
+    if(using_net_neural){
+        bias = ia;
+    }else{
+        genes = ia;
+    }
+
     // Inicia o carro no ponto inicial
     this.id         = seq;
     this.position   = createVector(width / 2, 100);
@@ -394,6 +433,7 @@ function Car(genes){
     this.showSensor = false;
     this.robot      = true;
     this.dna        = new DNA(genes);
+    this.neural     = new Neural(bias);
     this.fitness    = 0;
     this.count      = 0;
     this.sensors    = [];
@@ -422,9 +462,18 @@ function Car(genes){
     this.update = function(){
         if(this.robot){
             if(!this.crashed && !this.endLine){
-                // Adiciona aleatoriamente a acao do carro
-                this.angle += this.dna.genes[count].angle;
-                this.velocity = this.dna.genes[count].velocity;
+                if(using_net_neural){
+                    // Passa os valores atualizados para rede neural para saber o que deve ser feito
+                    this.neural.activate(this.angle, this.sensors);
+                    
+                    // Faz com que o carro mova de acordo com o que a rede neural determinou
+                    this.angle += this.neural.angle;
+                    this.velocity = this.neural.velocity;
+                }else{
+                    // Adiciona aleatoriamente a acao do carro
+                    this.angle += this.dna.genes[count].angle;
+                    this.velocity = this.dna.genes[count].velocity;   
+                }
                 
                 // Movimenta o carro
                 this.move();
@@ -585,9 +634,18 @@ function distanceToCollision(x, y, angle){
         }
 
         if(checkCollision(newX, newY)){
-            return createVector(newX, newY, int(dist(x, y, newX, newY)));
+            var distance = int(dist(x, y, newX, newY));
+
+            return new Sensor(newX, newY, angle, distance);
         };
     }
+}
+
+function Sensor(x, y, angle, distance){
+    this.x = x;
+    this.y = y;
+    this.angle = angle;
+    this.distance = distance;
 }
 
 function DNA(genes){
@@ -627,5 +685,110 @@ function DNA(genes){
         }
         
         return newgenes;
+    }
+}
+
+function Neural(bias){
+    if(bias){
+        this.bias       = bias;
+    }else{
+        this.bias       = random(1,200);
+    }
+
+    this.inputLayer     = [];
+    this.hiddenLayer    = [];
+    this.outputLayer    = [];
+    this.velocity       = 0;
+    this.angle          = 0;
+    this.levelLearning  = 0.5;
+
+    this.activate = function(angle, sensors){
+        var angleChange = 0;
+        
+        // Define quanto o angulo tera que mudar para que ele fique em 90 graus
+        if(angle > PI){
+            angleChange = HALF_PI - (angle - PI); 
+        }else{
+            angleChange = HALF_PI - angle;
+        }
+        
+        for(var i = 0; i < sensors.length; i++){
+            this.inputLayer[i] = []; // Zera os valores da camada de entrada
+            var distance = sensors[i].distance;
+            var angleSensor = sensors[i].angle + angleChange;
+            
+            // Define se o sensor esta na direita ou na esquerda
+            if(i >= 0 && i <= 3){
+                this.inputLayer[i]['position'] = 'right';
+            }else if(i >= 4 && i <= 7){
+                this.inputLayer[i]['position'] = 'left';
+            }else{
+                this.inputLayer[i]['position'] = 'center';
+            }
+
+            // Leva o angulo do sensor como se o angulo do carro fosse sempre 90 graus
+            if(angleSensor > TWO_PI){
+                angleSensor = angleSensor - TWO_PI;
+            }else if(angle < 0){
+                angleSensor = TWO_PI + angleSensor
+            }
+            
+            // Estava dando problema para calcular o seno com a função do p5js, entao foi calculado previamente os valores
+            var sinCalculed = sinValue[i];
+
+            // Executa a função (DISTANCIA * (SEN(ANGLE) + 0.25) + bias)
+            this.inputLayer[i]['value'] = distance * (sinCalculed + 0.25) + this.bias;
+        }
+        
+        // Cruza as camadas
+        for(var i = 0; i < this.inputLayer.length; i++){
+            this.hiddenLayer[i] = [];
+            this.hiddenLayer[i]['value'] = 0;
+            this.hiddenLayer[i]['position'] = this.inputLayer[i]['position'];
+            
+            for(var j = 0; j < this.inputLayer.length; j++){
+                if(this.hiddenLayer[i]['position'] == 'center'){
+                    if(this.hiddenLayer[i]['position'] == this.inputLayer[j]['position']){
+                        this.hiddenLayer[i]['value'] += this.inputLayer[j]['value'];
+                    }
+                }else{
+                    if(this.inputLayer[j]['position'] != 'center'){
+                        if(this.hiddenLayer[i]['position'] == this.inputLayer[j]['position']){
+                            this.hiddenLayer[i]['value'] += this.inputLayer[j]['value'];
+                        }else{
+                            this.hiddenLayer[i]['value'] -= this.inputLayer[j]['value'];
+                        }
+                    }
+                }
+            }
+        }
+
+        this.outputLayer = [];
+        for(var i = 0; i < this.hiddenLayer.length; i++){
+            var position = this.hiddenLayer[i]['position'];
+            
+            if(!this.outputLayer[position]){
+                // Adiciona esta posicao na camada
+                this.outputLayer[position] = 0;
+
+                for(var j = 0; j < this.hiddenLayer.length; j++){
+                    if(this.hiddenLayer[j]['position'] == position){
+                        this.outputLayer[position] += this.hiddenLayer[j]['value'];
+                    }
+                }
+            }
+        }
+
+        // Define a saida
+        if(this.outputLayer['center'] > this.outputLayer['left'] && this.outputLayer['center'] > this.outputLayer['right']){
+            this.angle = 0;
+            this.velocity = MAX_VELOCITY;
+        }else if(this.outputLayer['left'] > this.outputLayer['right']){
+            this.angle = MAX_ANGLE_CHANGE;
+            this.velocity = MAX_VELOCITY;
+        }else{
+            this.angle = -MAX_ANGLE_CHANGE;
+            this.velocity = MAX_VELOCITY;
+        }        
     }
 }
