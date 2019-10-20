@@ -17,7 +17,7 @@ let MAX_COUNT           = 2000;                         // Quantidade maxima de 
 let MAX_ROBOT           = 100;                          // Quantidade maxima de robos
 let start               = true;                         // Flag para saber se os robos devem estar funcionando ou não
 let seq                 = 1;                            // Id sequencial para identificar cada carro
-let link_bg             = 'http://miromannino.com/wp-content/uploads/ur2009-map.png'; // car_game.png // Imagem de fundo
+let link_bg             = 'car_game_hard.png';               // car_game.png // Imagem de fundo
 let color_street        = [180,180,180,1];              // Corres utilizadas para definir o que é rua e o que não é rua        
 let stage               = STAGE_MAPPING;                // Estado que o jogo se encontra
 let count               = 0;                            // Quantidade de quadros executados
@@ -208,13 +208,13 @@ function gameMapping(){
         map_game[i][lineMapping] = isStreet(components);
     }
 
-    // Grava uma copia do mapa original para utilizar depois
-    map_game_original = copyArray(map_game);
-
     // Avança para proxima linha
     lineMapping += 1;
 
     if (lineMapping > height) {
+        // Grava uma copia do mapa original para utilizar depois
+        map_game_original = copyArray(map_game);
+
         // Define uma barreira na chegada
         for(var i = 65; i < 145; i++){
             map_game[381][i] = false;
@@ -722,7 +722,7 @@ function Neural(countInputLayer, countHiddenLayer, countOutputLayer){
     this.outputValue    = [];
     this.velocity       = 0;
     this.angle          = 0;
-    this.levelLearning  = 5;
+    this.levelLearning  = 1;
     
     // Gera os pesos aleatoriamente
     this.bias['hidden'] = [];
@@ -794,20 +794,17 @@ function Neural(countInputLayer, countHiddenLayer, countOutputLayer){
         for(var i = 0; i < countHiddenLayer; i++){
             this.bias['hidden'][i] = this.bias['hidden'][i] + random(-this.levelLearning,this.levelLearning);
     
-            /*
             for(var j = 0; j < countInputLayer; j++){
                 this.hiddenLayer[i][j] = this.hiddenLayer[i][j] + random(-this.levelLearning,this.levelLearning);
             }
-            */
         }
     
         for(var i = 0; i < countOutputLayer; i++){
             this.bias['output'][i] = this.bias['output'][i] + random(-this.levelLearning,this.levelLearning);
-            /*
+
             for(var j = 0; j < countHiddenLayer; j++){
                 this.outputLayer[i][j] = this.outputLayer[i][j] + random(-this.levelLearning,this.levelLearning);
             }
-            */
         }
     }
 }
