@@ -3,6 +3,11 @@ let STAGE_MAPPING       = 'MAPPING';
 let STAGE_EVALUATE      = 'VALUE_MAP';
 let STAGE_PLAYING       = 'PLAYING';
 let STAGE_CHECKING      = 'CHECKING';
+let SPEED_LINE          = 2;
+let MAX_BIAS            = 10;
+let MIN_BIAS            = 10;
+let MAX_WEIGHT          = 1;
+let MIN_WEIGHT          = -1;
 let MAX_SENSORS         = 7;
 let MAX_ANGLE_CHANGE    = 0.15;                         // Angulo maxima para fazer curva
 let MAX_VELOCITY        = 2;                            // Velocidade Maxima do carro
@@ -16,7 +21,8 @@ let link_bg             = 'http://miromannino.com/wp-content/uploads/ur2009-map.
 let color_street        = [180,180,180,1];              // Corres utilizadas para definir o que é rua e o que não é rua        
 let stage               = STAGE_MAPPING;                // Estado que o jogo se encontra
 let count               = 0;                            // Quantidade de quadros executados
-let map_game            = [];                           // Mapeado a trajetoria da pista     
+let map_game            = [];                           // Mapeado a trajetoria da pista
+let map_game_original   = [];
 let map_value           = [];                           // Adicionado valores para determinar onde é mais perto da chegada
 let lineMapping         = 0;                            // Posição que a linha se encontra no mapeamento
 let bg;                                                 // Imagem de fundo
@@ -26,7 +32,7 @@ let endLine;                                            // Linha que vem destrui
 let population;
 let sensor_angle;
 let using_net_neural    = true;
-let sinValue            = [0, 0.43388373911, 0.78183148246, 0.97492791218, 0.97492791218, 0.78183148246, 0.43388373911, 0, 1];
+let max_value_map       = 0;
 
 // ---------------------------------- Funções do p5js ------------------------------------ //
 function preload() {
@@ -64,6 +70,8 @@ function draw() {
             break;
 
         case STAGE_EVALUATE:
+            max_value_map += 1;
+
             // Adiciona valores no mapa
             evaluateMap();
 
@@ -108,13 +116,6 @@ function draw() {
     }
 }
 
-function mouseClicked() {
-    console.log('MouseX ' + mouseX);
-    console.log('MouseY ' + mouseY);
-
-    return false;
-}
-
 // ------------------------------------------------------------------------------------------ //
 
 // Inicia o mapa com todos valores falsos
@@ -132,17 +133,48 @@ function initializeMap(){
 
 // Adiciona valor no mapa
 function evaluateMap(){
-    no_more_value = true;
-
     // Percorre todos os registros aumentando um do valor neles
     for(var i = 0; i < width; i++){
-        for(var j = 0; j < height; j ++){
+        for(var j = 0; j < height; j++){
             if(map_value[i][j]){
                 map_value[i][j] += 1;
             }
         }
     }
 
+    // Verifica se tem mais pista livre para adicionar valor
+    no_more_value = sumValueMap();
+
+    if(no_more_value){
+        /*
+            Neste caso tinhamos adicionado uma faixa onde falava onde era o final,
+            vamos mudar a estrategia e deixar o carro percorrer todo o cenário,
+            assim o carro sera treinado para dar mais de uma volta
+        */
+        map_game = copyArray(map_game_original);
+
+        // Verifica mais uma vez, pois foi retornado o mapa original
+        no_more_value = sumValueMap();
+    }
+    
+    if(no_more_value){
+        // Neste caso esta na hora iniciar o projeto de verdade
+        car = new Car();
+        car.robot = false;
+
+        // Inicializa a população dos carros
+        population = new Population();
+
+        // Já cria a linha de final de jogo
+        endLine = new EndLine();
+
+        stage = STAGE_PLAYING;
+    }
+}
+
+function sumValueMap(){
+    var no_more_value = true;
+    
     // Percorre todos os registros para verificar se tem um novo valor adicionado
     for(var i = 0; i < width; i++){
         for(var j = 0; j < height; j ++){
@@ -159,20 +191,7 @@ function evaluateMap(){
         }
     }
 
-    if(no_more_value){
-        // Neste caso esta na hora iniciar o projeto de verdade
-        car = new Car();
-        car.robot = false;
-
-        // Inicializa a população dos carros
-        population = new Population();
-
-        // Já cria a linha de final de jogo
-        endLine = new EndLine();
-
-        // Muda o estado do jogo para iniciado
-        stage = STAGE_PLAYING;
-    }
+    return no_more_value;
 }
 
 function gameMapping(){
@@ -188,6 +207,9 @@ function gameMapping(){
         // Verifica se este pixel é uma estrada ou não
         map_game[i][lineMapping] = isStreet(components);
     }
+
+    // Grava uma copia do mapa original para utilizar depois
+    map_game_original = copyArray(map_game);
 
     // Avança para proxima linha
     lineMapping += 1;
@@ -235,8 +257,9 @@ function EndLine(){
     this.showLine = true;
 
     this.checkEndLine = function(car){
+        var value_car = map_value[Math.trunc(car.position.x)][Math.trunc(car.position.y)];
         // Verifica o valor atual do carro, caso seja menor que o valor do fim do jogo ele deve morrer
-        if(map_value[Math.trunc(car.position.x)][Math.trunc(car.position.y)] <= this.value){
+        if(value_car <= this.value && value_car >= this.value - 100){
             return true;
         }
 
@@ -251,7 +274,8 @@ function EndLine(){
             this.y2 = 140;
             this.value = 0;
         }else if(count > 1){
-            this.value += 1;
+            // Verifica se a linha já percorreu todo o mapa, neste caso reinicia o valor dela
+            this.value = this.value > max_value_map ? 1 : this.value + SPEED_LINE;
             this.points = [];
                     
             // Verifica quais os pontos tem o valor atual do fim do jogo
@@ -347,13 +371,13 @@ function Population(){
         // Cria a seleção dos robots, realizandos uma mistura entre eles
         for(var i = 0; i < MAX_ROBOT; i++){
             var robo = random(this.matingpool);
-            var bias = robo.neural.bias + random(robo.neural.levelLearning);
-
+            
             if(random() <= 0.01){ // Adiciona mutação apenas em 1 por cento
-                bias = random(1,200);
+                robo = new Car();
             }
-
-            this.robots[i] = new Car(bias);
+            
+            this.robots[i] = new Car();
+            this.robots[i].updateNeuralNetwork(robo.neural);
         }
     }
 
@@ -412,16 +436,7 @@ function Population(){
     }
 }
 
-function Car(ia){
-    var genes;
-    var bias;
-
-    if(using_net_neural){
-        bias = ia;
-    }else{
-        genes = ia;
-    }
-
+function Car(genes){
     // Inicia o carro no ponto inicial
     this.id         = seq;
     this.position   = createVector(width / 2, 100);
@@ -433,7 +448,7 @@ function Car(ia){
     this.showSensor = false;
     this.robot      = true;
     this.dna        = new DNA(genes);
-    this.neural     = new Neural(bias);
+    this.neural     = new Neural(MAX_SENSORS + 2, 4, 3);
     this.fitness    = 0;
     this.count      = 0;
     this.sensors    = [];
@@ -454,6 +469,16 @@ function Car(ia){
     // Atualiza os sensores
     this.updateSensor();
 
+    this.updateNeuralNetwork = function(neural){
+        this.neural.bias        = copyArray(neural.bias);
+        this.neural.inputLayer  = copyArray(neural.inputLayer);
+        this.neural.hiddenLayer = copyArray(neural.hiddenLayer);
+        this.neural.outputLayer = copyArray(neural.outputLayer);
+        this.neural.hiddenValue = copyArray(neural.hiddenValue);
+        this.neural.outputValue = copyArray(neural.outputValue);
+        this.neural.learning();
+    }
+
     this.direction = function(velocity, angle){
         this.wheel = angle;
         this.velocity = velocity;
@@ -464,7 +489,7 @@ function Car(ia){
             if(!this.crashed && !this.endLine){
                 if(using_net_neural){
                     // Passa os valores atualizados para rede neural para saber o que deve ser feito
-                    this.neural.activate(this.angle, this.sensors);
+                    this.neural.activate(this.sensors);
                     
                     // Faz com que o carro mova de acordo com o que a rede neural determinou
                     this.angle += this.neural.angle;
@@ -529,7 +554,7 @@ function Car(ia){
             this.updateSensor();
         }else{
             this.count = count;
-            this.fitness = map_value[Math.trunc(this.position.x)][Math.trunc(this.position.y)] * 2;
+            this.fitness = count * 2;
         }
     }
 
@@ -688,107 +713,114 @@ function DNA(genes){
     }
 }
 
-function Neural(bias){
-    if(bias){
-        this.bias       = bias;
-    }else{
-        this.bias       = random(1,200);
-    }
-
+function Neural(countInputLayer, countHiddenLayer, countOutputLayer){
+    this.bias           = [];
     this.inputLayer     = [];
     this.hiddenLayer    = [];
     this.outputLayer    = [];
+    this.hiddenValue    = [];
+    this.outputValue    = [];
     this.velocity       = 0;
     this.angle          = 0;
-    this.levelLearning  = 0.5;
+    this.levelLearning  = 5;
+    
+    // Gera os pesos aleatoriamente
+    this.bias['hidden'] = [];
+    this.bias['output'] = [];
 
-    this.activate = function(angle, sensors){
-        var angleChange = 0;
-        
-        // Define quanto o angulo tera que mudar para que ele fique em 90 graus
-        if(angle > PI){
-            angleChange = HALF_PI - (angle - PI); 
-        }else{
-            angleChange = HALF_PI - angle;
+    for(var i = 0; i < countHiddenLayer; i++){
+        this.bias['hidden'][i] = random(MIN_BIAS, MAX_BIAS);
+
+        this.hiddenLayer[i] = [];
+        for(var j = 0; j < countInputLayer; j++){
+            this.hiddenLayer[i][j] = random(MIN_WEIGHT, MAX_WEIGHT);
         }
-        
-        for(var i = 0; i < sensors.length; i++){
-            this.inputLayer[i] = []; // Zera os valores da camada de entrada
-            var distance = sensors[i].distance;
-            var angleSensor = sensors[i].angle + angleChange;
-            
-            // Define se o sensor esta na direita ou na esquerda
-            if(i >= 0 && i <= 3){
-                this.inputLayer[i]['position'] = 'right';
-            }else if(i >= 4 && i <= 7){
-                this.inputLayer[i]['position'] = 'left';
-            }else{
-                this.inputLayer[i]['position'] = 'center';
-            }
-
-            // Leva o angulo do sensor como se o angulo do carro fosse sempre 90 graus
-            if(angleSensor > TWO_PI){
-                angleSensor = angleSensor - TWO_PI;
-            }else if(angle < 0){
-                angleSensor = TWO_PI + angleSensor
-            }
-            
-            // Estava dando problema para calcular o seno com a função do p5js, entao foi calculado previamente os valores
-            var sinCalculed = sinValue[i];
-
-            // Executa a função (DISTANCIA * (SEN(ANGLE) + 0.25) + bias)
-            this.inputLayer[i]['value'] = distance * (sinCalculed + 0.25) + this.bias;
-        }
-        
-        // Cruza as camadas
-        for(var i = 0; i < this.inputLayer.length; i++){
-            this.hiddenLayer[i] = [];
-            this.hiddenLayer[i]['value'] = 0;
-            this.hiddenLayer[i]['position'] = this.inputLayer[i]['position'];
-            
-            for(var j = 0; j < this.inputLayer.length; j++){
-                if(this.hiddenLayer[i]['position'] == 'center'){
-                    if(this.hiddenLayer[i]['position'] == this.inputLayer[j]['position']){
-                        this.hiddenLayer[i]['value'] += this.inputLayer[j]['value'];
-                    }
-                }else{
-                    if(this.inputLayer[j]['position'] != 'center'){
-                        if(this.hiddenLayer[i]['position'] == this.inputLayer[j]['position']){
-                            this.hiddenLayer[i]['value'] += this.inputLayer[j]['value'];
-                        }else{
-                            this.hiddenLayer[i]['value'] -= this.inputLayer[j]['value'];
-                        }
-                    }
-                }
-            }
-        }
-
-        this.outputLayer = [];
-        for(var i = 0; i < this.hiddenLayer.length; i++){
-            var position = this.hiddenLayer[i]['position'];
-            
-            if(!this.outputLayer[position]){
-                // Adiciona esta posicao na camada
-                this.outputLayer[position] = 0;
-
-                for(var j = 0; j < this.hiddenLayer.length; j++){
-                    if(this.hiddenLayer[j]['position'] == position){
-                        this.outputLayer[position] += this.hiddenLayer[j]['value'];
-                    }
-                }
-            }
-        }
-
-        // Define a saida
-        if(this.outputLayer['center'] > this.outputLayer['left'] && this.outputLayer['center'] > this.outputLayer['right']){
-            this.angle = 0;
-            this.velocity = MAX_VELOCITY;
-        }else if(this.outputLayer['left'] > this.outputLayer['right']){
-            this.angle = MAX_ANGLE_CHANGE;
-            this.velocity = MAX_VELOCITY;
-        }else{
-            this.angle = -MAX_ANGLE_CHANGE;
-            this.velocity = MAX_VELOCITY;
-        }        
     }
+
+    for(var i = 0; i < countOutputLayer; i++){
+        this.bias['output'][i] = random(MIN_BIAS, MAX_BIAS);
+        
+        this.outputLayer[i] = [];
+        for(var j = 0; j < countHiddenLayer; j++){
+            this.outputLayer[i][j] = random(MIN_WEIGHT, MAX_WEIGHT);
+        }
+    }
+
+    this.activate = function(sensors){
+        this.hiddenValue = [];
+        this.outputValue = [];
+
+        // Percorre a entrada de dados
+        for(var i = 0; i < sensors.length; i++){
+            this.inputLayer[i] = sensors[i].distance;
+        }
+        
+        // Agora passa os valores para a segunda camada
+        for(var i = 0; i < this.hiddenLayer.length; i++){
+            this.hiddenValue[i] = 0;
+
+            for(var j = 0; j < this.inputLayer.length; j++){
+                this.hiddenValue[i] += (this.inputLayer[j] * this.hiddenLayer[i][j] + this.bias['hidden'][i]);
+            }
+
+            this.hiddenValue[i] = this.hiddenValue[i] > 0 ? this.hiddenValue[i] : 0;
+        }
+
+        // Agora para os valores para a ultima camada
+        for(var i = 0; i < this.outputLayer.length; i++){
+            this.outputValue[i] = 0;
+
+            for(var j = 0; j < this.hiddenLayer.length; j++){
+                this.outputValue[i] += (this.hiddenValue[j] * this.outputLayer[i][j] + this.bias['output'][i]);
+            }
+
+            this.outputValue[i] = this.outputValue[i] > 0 ? this.outputValue[i] : 0;
+        }
+        
+        this.velocity = MAX_VELOCITY;
+
+        if(this.outputValue[0] > this.outputValue[1] && this.outputValue[0] > this.outputValue[2]){
+            this.angle = 0;
+        }else if(this.outputValue[1] > this.outputValue[2]){
+            this.angle = MAX_ANGLE_CHANGE;
+        }else if(this.outputValue[2] > 0){
+            this.angle = -MAX_ANGLE_CHANGE;
+        }else{
+            this.angle = 0;
+        }
+    }
+
+    this.learning = function(){
+        for(var i = 0; i < countHiddenLayer; i++){
+            this.bias['hidden'][i] = this.bias['hidden'][i] + random(-this.levelLearning,this.levelLearning);
+    
+            /*
+            for(var j = 0; j < countInputLayer; j++){
+                this.hiddenLayer[i][j] = this.hiddenLayer[i][j] + random(-this.levelLearning,this.levelLearning);
+            }
+            */
+        }
+    
+        for(var i = 0; i < countOutputLayer; i++){
+            this.bias['output'][i] = this.bias['output'][i] + random(-this.levelLearning,this.levelLearning);
+            /*
+            for(var j = 0; j < countHiddenLayer; j++){
+                this.outputLayer[i][j] = this.outputLayer[i][j] + random(-this.levelLearning,this.levelLearning);
+            }
+            */
+        }
+    }
+}
+
+function copyArray(a){
+    var b = [];
+
+    for (var [key_i, value_i] of Object.entries(a)) {
+        b[key_i] = [];
+        for (var [key_j, value_j] of Object.entries(a[key_i])) {
+            b[key_i][key_j] = a[key_i][key_j];
+        }
+    }
+
+    return b;
 }
