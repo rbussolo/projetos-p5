@@ -15,6 +15,7 @@
             <a href="javascript:page('space');"><i class="fas fa-rocket"></i> Space Invaders</a>
             <a href="javascript:page('sort');"><i class="fas fa-sort"></i> Sorts</a>
             <a href="javascript:page('fat');"><i class="fas fa-user-circle"></i> The Fat Guy</a>
+            <a href="javascript:page('collatz');"><i class="fas fa-user-circle"></i> Collatz Conjecture</a>
         </header>
         <div class="container">
             <div id="allProjects" class="card">
@@ -33,6 +34,7 @@
                             <button class="btn btn-purple" onclick="page('sort')">Sort</button>
                             <button class="btn btn-purple" onclick="page('fat')">The Fat Guy</button>
                             <button class="btn btn-purple" onclick="page('car')">Car Game</button>
+                            <button class="btn btn-purple" onclick="page('collatz')">Collatz Conjecture</button>
                         </div>
                     </div>
                 </div>
@@ -198,20 +200,35 @@
                 </div>
             </div>
             <div id="car" class="card" style="width: 810px;">
-                    <div class="card-title">
-                        Projeto <b>The Fat Guy</b>
+                <div class="card-title">
+                    Projeto <b>The Fat Guy</b>
+                </div>
+                <div class="card-body">
+                    <div class="card-body-canvas">
+                        <iframe id="frameCar" src="pages/car/car.html" frameborder="0" width="759" height="389"></iframe>
                     </div>
-                    <div class="card-body">
-                        <div class="card-body-canvas">
-                            <iframe id="frameCar" src="pages/car/car.html" frameborder="0" width="759" height="389"></iframe>
-                        </div>
-                        <div class="card-body-text">
-                            <div class="card-body-title">
-                                O jogo de carrinho.
-                            </div>
+                    <div class="card-body-text">
+                        <div class="card-body-title">
+                            O jogo de carrinho.
                         </div>
                     </div>
                 </div>
+            </div>
+            <div id="collatz" class="card" style="width: 810px;">
+                <div class="card-title">
+                    Projeto <b>Collatz Conjecture</b>
+                </div>
+                <div class="card-body">
+                    <div class="card-body-canvas">
+                        <iframe id="frameCollatz" src="pages/collatz/collatz.html" frameborder="0" width="500" height="500"></iframe>
+                    </div>
+                    <div class="card-body-text">
+                        <div class="card-body-title">
+                            Exibição da Conjectura de Collatz.
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
         <script src="js/index.js"></script>
     </body>
