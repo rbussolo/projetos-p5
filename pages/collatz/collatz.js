@@ -11,7 +11,7 @@ function setup() {
     // Adiciona um fundo cinza
     background(0);
 
-    for(var i = 2; i < 1000; i++){
+    for(var i = 2; i < 2500; i++){
         n = i;
         sequence = [];
         do{
@@ -24,7 +24,7 @@ function setup() {
         resetMatrix();
 
         // Altera a tela para o ultimo ponto encontrado
-        translate(width/2, height/2);
+        translate(width/2 + 200, height/2);
         rotate(HALF_PI);
 
         for(var j = sequence.length - 1; j >= 0; j--){
@@ -36,8 +36,6 @@ function setup() {
             stroke(255, 50);
             line(0,0,-len,0);
             translate(-len,0);
-            //rotate(-HALF_PI);
-            //rotate(-angleRotate);
         }
     }
 }
