@@ -16,6 +16,7 @@
             <a href="javascript:page('sort');"><i class="fas fa-sort"></i> Sorts</a>
             <a href="javascript:page('fat');"><i class="fas fa-user-circle"></i> The Fat Guy</a>
             <a href="javascript:page('collatz');"><i class="fas fa-user-circle"></i> Collatz Conjecture</a>
+            <a href="javascript:page('clock');"><i class="fas fa-user-circle"></i> Clock</a>
         </header>
         <div class="container">
             <div id="allProjects" class="card">
@@ -35,6 +36,7 @@
                             <button class="btn btn-purple" onclick="page('fat')">The Fat Guy</button>
                             <button class="btn btn-purple" onclick="page('car')">Car Game</button>
                             <button class="btn btn-purple" onclick="page('collatz')">Collatz Conjecture</button>
+                            <button class="btn btn-purple" onclick="page('clock')">Clock</button>
                         </div>
                     </div>
                 </div>
@@ -225,6 +227,21 @@
                     <div class="card-body-text">
                         <div class="card-body-title">
                             Exibição da Conjectura de Collatz.
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div id="clock" class="card" style="width: 810px;">
+                <div class="card-title">
+                    Projeto <b>Clock</b>
+                </div>
+                <div class="card-body">
+                    <div class="card-body-canvas">
+                        <iframe id="frameClock" src="pages/clock/clock.html" frameborder="0" width="500" height="500"></iframe>
+                    </div>
+                    <div class="card-body-text">
+                        <div class="card-body-title">
+                            Exibição de um Clock.
                         </div>
                     </div>
                 </div>
