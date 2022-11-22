@@ -1,1 +1,3 @@
-Apenas brincando com a biblioteca P5.
+# Playground
+
+Learning how to use this library.
